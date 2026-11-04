@@ -1,0 +1,43 @@
+[project]
+name = "dss-plugin-project-maintenance"
+# Keep in line with plugin.json: a test checks that both versions match.
+version = "1.0.0"
+# DSS 13 runs the plugin in its built-in Python 3.9 environment.
+requires-python = ">=3.9"
+dependencies = []
+
+[dependency-groups]
+# mypy 2 can no longer check code against Python 3.9, the version DSS 13 runs.
+dev = ["mypy>=1.19,<2", "pytest", "ruff"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["python-lib", "tests"]
+testpaths = ["tests"]
+# Test files of different folders can have the same name, such as tests/core/test_options.py and
+# tests/macros/clear_datasets_by_tags/test_options.py.
+addopts = ["--import-mode=importlib"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+src = ["python-lib", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP", "W"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+mypy_path = "python-lib:tests"
+explicit_package_bases = true
+disallow_subclassing_any = false
+# The runnables all have the same file name, so mypy checks them one at a time:
+# for f in python-runnables/*/runnable.py; do uv run mypy "$f"; done
+files = ["python-lib", "resource", "tests", "build_plugin_zip.py"]
+
+[[tool.mypy.overrides]]
+module = ["dataiku", "dataiku.*"]
+ignore_missing_imports = true

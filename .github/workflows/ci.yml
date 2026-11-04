@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    name: Lint, types and plugin zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      # Python 3.9 comes from .python-version: the version DSS 13 runs the plugin with.
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      # The runnables all have the same file name, so mypy checks them one at a time.
+      - run: for f in python-runnables/*/runnable.py; do uv run mypy "$f" || exit 1; done
+      - run: uv run python build_plugin_zip.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: dist/*.zip
+
+  tests:
+    name: Tests on Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.9 is what DSS 13 runs. The newer one shows the code keeps working after a DSS upgrade.
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --locked --python ${{ matrix.python }} pytest

@@ -1,0 +1,46 @@
+{
+    "id": "project-maintenance",
+    "version": "1.0.0",
+    "meta": {
+        "label": "DSS Project Maintenance",
+        "description": "Macros to maintain DSS projects: clear the data of datasets selected by their tags, report the tags of datasets. Macros that change data simulate by default.",
+        "author": "François CABANNES",
+        "icon": "icon-wrench",
+        "tags": ["Admin"],
+        "licenseInfo": "No License",
+        "supportLevel": "NOT_SUPPORTED"
+    },
+    "params": [
+        {
+            "type": "SEPARATOR",
+            "label": "Downloaded recaps",
+            "description": "A recap downloaded from DSS and opened on its own loads AG Grid Community to show its interactive table. Without it, the recap shows a plain table."
+        },
+        {
+            "name": "ag_grid_url",
+            "type": "STRING",
+            "label": "AG Grid URL",
+            "description": "AG Grid Community 29.2.0 by default. Set the URL of an internal mirror, or leave empty so that no recap loads it.",
+            "defaultValue": "https://cdn.jsdelivr.net/npm/ag-grid-community@29.2.0/dist/ag-grid-community.min.js"
+        },
+        {
+            "name": "ag_grid_integrity",
+            "type": "STRING",
+            "label": "AG Grid integrity hash",
+            "description": "The hash of that file, such as sha256-.... Change it with the URL. Empty: not checked.",
+            "defaultValue": "sha256-ytTx5Ih+kEK6CPSJN4iOP4d9cDw7IJ7HMtsvVwDh+aY="
+        },
+        {
+            "type": "SEPARATOR",
+            "label": "Tag lists",
+            "description": "The \"Cat. Tags\" lists of the macro forms offer the category tags of the datasets of the project."
+        },
+        {
+            "name": "listed_tag_categories",
+            "type": "STRINGS",
+            "label": "Tag categories",
+            "description": "Only the tags of these categories are listed, such as Stage. Empty: all categories.",
+            "defaultValue": []
+        }
+    ]
+}

@@ -1,0 +1,81 @@
+{
+    "meta": {
+        "label": "Report Dataset Tags",
+        "description": "Reports how the datasets of this project use tags. Changes nothing.",
+        "icon": "icon-tags",
+        "category": "Project maintenance"
+    },
+    "impersonate": true,
+    "permissions": [
+        "READ_CONF"
+    ],
+    "resultType": "HTML",
+    "resultLabel": "Report Dataset Tags recap",
+    "macroRoles": [
+        {
+            "type": "PROJECT_MACROS"
+        }
+    ],
+    "params": [
+        {
+            "name": "show_unused_tags",
+            "type": "BOOLEAN",
+            "label": "Show unused tags",
+            "description": "Tags of the project tag list that no dataset has.",
+            "defaultValue": true
+        },
+        {
+            "name": "aggregate_by_tag",
+            "type": "BOOLEAN",
+            "label": "Aggregate by tag",
+            "description": "Checked: one row per tag. Unchecked: one row per tag and dataset.",
+            "defaultValue": true
+        },
+        {
+            "type": "SEPARATOR",
+            "label": "Summary"
+        },
+        {
+            "name": "recap_to_dataset",
+            "type": "BOOLEAN",
+            "label": "Write to a dataset",
+            "description": "One row per tag and dataset, and per run.",
+            "defaultValue": false
+        },
+        {
+            "name": "recap_dataset",
+            "type": "DATASET",
+            "label": "Summary dataset",
+            "description": "A new, empty dataset of this project.",
+            "mandatory": false,
+            "visibilityCondition": "model.recap_to_dataset"
+        },
+        {
+            "name": "recap_append",
+            "type": "BOOLEAN",
+            "label": "Append mode",
+            "description": "Unchecked: each run replaces the content.",
+            "defaultValue": true,
+            "visibilityCondition": "model.recap_to_dataset"
+        },
+        {
+            "name": "on_recap_error",
+            "type": "SELECT",
+            "label": "If the summary is not written",
+            "description": "When the summary dataset cannot be written. The work is done anyway. Use 'Fail the run' in scenarios.",
+            "selectChoices": [
+                {
+                    "value": "CONTINUE",
+                    "label": "Continue"
+                },
+                {
+                    "value": "FAIL",
+                    "label": "Fail the run"
+                }
+            ],
+            "defaultValue": "CONTINUE",
+            "mandatory": true,
+            "visibilityCondition": "model.recap_to_dataset"
+        }
+    ]
+}
