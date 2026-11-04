@@ -96,9 +96,13 @@ def round_duration(duration: Any) -> Any:
 
 
 def describe_counts(recap: dict[str, Any]) -> str:
-    """Return the totals of the run for the log."""
+    """Return the totals of the run for the log, for the statuses this kind of run can have."""
     counts = count_by_status(recap["datasets"])
-    totals = ", ".join(f"{count} {STATUS_LABELS[status].lower()}" for status, count in counts.items())
+    # A simulation clears nothing, so nothing fails. A real run marks nothing "Cleared (Simulate)".
+    other_mode = {STATUS_CLEARED, STATUS_FAILED} if recap["simulate"] else {STATUS_WOULD_BE_CLEARED}
+    totals = ", ".join(
+        f"{count} {STATUS_LABELS[status].lower()}" for status, count in counts.items() if status not in other_mode
+    )
     return f"{totals}, out of {len(recap['datasets'])} selected and {recap['scanned_count']} scanned datasets"
 
 
@@ -221,7 +225,8 @@ def build_banners(recap: dict[str, Any]) -> list[Banner]:
             Banner(
                 TONE_CAUTION,
                 "Simulation: nothing was cleared.",
-                'Uncheck "Simulate" and run the macro again to clear the datasets marked "Would be cleared".',
+                'Uncheck "Simulate" and run the macro again to clear the datasets marked '
+                f'"{STATUS_LABELS[STATUS_WOULD_BE_CLEARED]}".',
             )
         )
     if recap["blockers"]:
@@ -235,15 +240,19 @@ def build_metrics(recap: dict[str, Any]) -> list[Metric]:
     """Return the headline figures of the run."""
     counts = count_by_status(recap["datasets"])
 
+    def status_metric(status: str, tone: str = "") -> Metric:
+        # Clicking the figure shows the datasets of this status: it has the label of the table.
+        return Metric(STATUS_LABELS[status], str(counts[status]), tone, status)
+
     metrics = []
     if recap["simulate"]:
-        metrics.append(Metric("Would be cleared", str(counts[STATUS_WOULD_BE_CLEARED]), status=STATUS_WOULD_BE_CLEARED))
+        metrics.append(status_metric(STATUS_WOULD_BE_CLEARED))
     else:
-        metrics.append(Metric("Cleared", str(counts[STATUS_CLEARED]), TONE_SUCCESS, STATUS_CLEARED))
-        metrics.append(Metric("Failed", str(counts[STATUS_FAILED]), TONE_DANGER, STATUS_FAILED))
-    metrics.append(Metric("Skipped", str(counts[STATUS_SKIPPED]), status=STATUS_SKIPPED))
+        metrics.append(status_metric(STATUS_CLEARED, TONE_SUCCESS))
+        metrics.append(status_metric(STATUS_FAILED, TONE_DANGER))
+    metrics.append(status_metric(STATUS_SKIPPED))
     if recap["excluded_tags"]:
-        metrics.append(Metric("Excluded", str(counts[STATUS_EXCLUDED]), TONE_MUTED, STATUS_EXCLUDED))
+        metrics.append(status_metric(STATUS_EXCLUDED, TONE_MUTED))
     metrics.append(Metric("Selected", str(len(recap["datasets"])), status=ALL_STATUSES))
     metrics.append(Metric("Scanned", str(recap["scanned_count"])))
     metrics.append(Metric("Duration", format_duration(recap["duration"])))

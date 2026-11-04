@@ -35,6 +35,12 @@ from dss_maintenance.core.tags import (
 
 logger = logging.getLogger(__name__)
 
+# Between step 1 and step 2 only: step 2 clears the dataset, or marks it WOULD_BE_CLEARED in a
+# simulation. No recap has this status.
+STATUS_TO_CLEAR = "TO_CLEAR"
+TO_CLEAR_LABEL = "To clear"
+
+# The statuses a run ends with.
 STATUS_CLEARED = "CLEARED"
 STATUS_WOULD_BE_CLEARED = "WOULD_BE_CLEARED"
 STATUS_FAILED = "FAILED"
@@ -42,7 +48,7 @@ STATUS_SKIPPED = "SKIPPED"
 STATUS_EXCLUDED = "EXCLUDED"
 STATUS_LABELS = {
     STATUS_CLEARED: "Cleared",
-    STATUS_WOULD_BE_CLEARED: "Would be cleared",
+    STATUS_WOULD_BE_CLEARED: "Cleared (Simulate)",
     STATUS_FAILED: "Failed",
     STATUS_SKIPPED: "Skipped",
     STATUS_EXCLUDED: "Excluded",
@@ -94,7 +100,7 @@ def decide(
 ) -> dict[str, Any]:
     """Decide what to do with one selected dataset, and why. Nothing is cleared here.
 
-    A dataset to clear gets the status "would be cleared": step 2 clears it unless the run is a simulation.
+    A dataset to clear gets the status TO_CLEAR: step 2 clears it, or marks it WOULD_BE_CLEARED in a simulation.
     The detail says why it is selected, excluded or skipped.
     """
     dataset = tagged.dataset
@@ -118,7 +124,7 @@ def decide(
         "shared_with": shared_with,
         "built_by_recipe": built_by_recipe,
         "partition_dimensions": dimensions,
-        "status": STATUS_WOULD_BE_CLEARED,
+        "status": STATUS_TO_CLEAR,
         "skip_code": "",
         # Without included tags, every dataset is selected: there is nothing to say.
         "detail": describe_match("included", selection.included_match) if selection.included_tags else "",
@@ -212,7 +218,8 @@ def count_by_status(rows: list[dict[str, Any]]) -> dict[str, int]:
 
 def describe_row(row: dict[str, Any]) -> str:
     """Return the status of a dataset with its detail and warnings, for the log."""
-    text = f"{row['name']}: {STATUS_LABELS[row['status']]}"
+    label = TO_CLEAR_LABEL if row["status"] == STATUS_TO_CLEAR else STATUS_LABELS[row["status"]]
+    text = f"{row['name']}: {label}"
     if row["detail"]:
         text += f" - {row['detail']}"
     for warning in row["warnings"]:
@@ -306,12 +313,15 @@ def run_cleanup(
     if blockers and not simulate:
         raise RunStopped("Nothing was cleared. " + " ".join(blockers))
 
-    # Step 2: clear the datasets, one after the other. With "Raise exception", the first failure
-    # stops the clearing: the datasets after it are not tried, and the runner ends the run in error.
+    # Step 2: clear the datasets, one after the other. A simulation only marks them. With "Raise
+    # exception", the first failure stops the clearing: the datasets after it are not tried, and the
+    # runner ends the run in error.
     stopped = False
     for position, row in enumerate(rows, start=1):
-        if row["status"] == STATUS_WOULD_BE_CLEARED and not simulate:
-            if stopped:
+        if row["status"] == STATUS_TO_CLEAR:
+            if simulate:
+                row["status"] = STATUS_WOULD_BE_CLEARED
+            elif stopped:
                 row.update(status=STATUS_SKIPPED, skip_code=SKIP_STOPPED, detail="Not tried: the run stopped")
             else:
                 row["status"], detail, row["duration"] = clear_dataset(project, row["name"])

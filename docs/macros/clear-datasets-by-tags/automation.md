@@ -41,7 +41,7 @@ All columns are text:
 | `run_by` | The login of the user who ran it. |
 | `simulate` | `true` or `false`. |
 | `dataset`, `dataset_type` | The selected dataset and its type. |
-| `status` | `CLEARED`, `WOULD_BE_CLEARED`, `FAILED`, `SKIPPED` or `EXCLUDED`. |
+| `status` | `CLEARED`, `WOULD_BE_CLEARED` (only in a simulation, shown as "Cleared (Simulate)"), `FAILED`, `SKIPPED` or `EXCLUDED`. |
 | `skip_code` | For a skipped dataset: `EXTERNAL`, `SHARED`, `PARTITIONED`, `WITHOUT_RECIPE`, `RECAP_DATASET`, or `STOPPED` (not tried: the run stopped at the first error). |
 | `detail` | The reason, the message of DSS, or the error. |
 | `warnings` | The warnings, separated by ` \| `. |

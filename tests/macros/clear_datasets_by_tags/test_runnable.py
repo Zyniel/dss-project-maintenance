@@ -66,9 +66,7 @@ def test_on_error_fail_names_the_failed_datasets(
     assert project.cleared == ["d1", "d2", "d3"]
     done = [record.getMessage() for record in caplog.records if record.getMessage().startswith("Done in ")]
     assert len(done) == 1
-    assert done[0].endswith(
-        ": 2 cleared, 0 would be cleared, 1 failed, 0 skipped, 0 excluded, out of 3 selected and 3 scanned datasets"
-    )
+    assert done[0].endswith(": 2 cleared, 1 failed, 0 skipped, 0 excluded, out of 3 selected and 3 scanned datasets")
 
 
 def test_raise_exception_fails_the_run_at_the_first_error(monkeypatch: pytest.MonkeyPatch) -> None:

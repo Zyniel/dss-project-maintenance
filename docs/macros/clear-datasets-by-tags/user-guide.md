@@ -67,7 +67,7 @@ For each selected dataset, the first rule that applies wins:
 4. it is shared and "Clear shared datasets" is unchecked: **Skipped**;
 5. it is partitioned and "Clear partitioned datasets" is unchecked: **Skipped**;
 6. no recipe builds it and "Clear datasets with no recipe" is unchecked: **Skipped**;
-7. otherwise: **Would be cleared**, then **Cleared** or **Failed** in a real run.
+7. otherwise, the dataset is to clear. A simulation marks it **Cleared (Simulate)**. A real run marks it **Cleared** or **Failed**, or **Skipped** if the run stopped before it ("If an error occurs" is "Raise exception").
 
 ## Checks before clearing
 
@@ -91,7 +91,7 @@ At the top: the macro, the project, who ran it and when (UTC). Then the banners:
 
 Then:
 
-- **The figures:** "Cleared" and "Failed" (or "Would be cleared" in a simulation), "Skipped", "Excluded" if there are excluded tags, "Selected", "Scanned" and "Duration". Click a figure to show only these datasets in the table. "Selected" shows them all again.
+- **The figures:** "Cleared" and "Failed" (or "Cleared (Simulate)" in a simulation), "Skipped", "Excluded" if there are excluded tags, "Selected", "Scanned" and "Duration". Click a figure to show only these datasets in the table. "Selected" shows them all again.
 - **The options** of the run.
 - **The tags**, included and excluded, with "Any" or "All", and the number of datasets that have each tag. An included tag on no dataset is yellow: maybe it has a typo.
 - **The table:** one row per selected dataset, failures first. In DSS, it is interactive: sort with the header of a column, filter with its menu, search all columns with the box above, and save the rows with "Export CSV". The CSV contains the status as text, without the icon.
@@ -101,7 +101,7 @@ Then:
 | Status | Meaning |
 |---|---|
 | Cleared | The data was cleared. The messages of DSS are in the Detail column. |
-| Would be cleared | Simulation: a real run would clear it. |
+| Cleared (Simulate) | Simulation: nothing was cleared, a real run would clear it. |
 | Failed | DSS could not clear it. The error is in the Detail column. The run continued with the next datasets, unless "If an error occurs" is "Raise exception". |
 | Skipped | A rule or an option protected it, or the run stopped before it ("Not tried: the run stopped"). The reason is in the Detail column. |
 | Excluded | It has the excluded tags. |

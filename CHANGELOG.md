@@ -6,6 +6,11 @@ The changes of each version of the plugin, the most recent first.
 
 First version of **DSS Project Maintenance**.
 
+### Changes since 1.0.0-beta
+
+- Clear Datasets by Tags: in a simulation, the status "Would be cleared" is now "Cleared (Simulate)", in the table, the figures and the banner. Its code stays `WOULD_BE_CLEARED`, in the JSON recap and in the summary dataset.
+- Clear Datasets by Tags, in the log: the decision for each dataset says "To clear" instead of "Would be cleared", and the line of totals only gives the statuses the run can have.
+
 ### Plugin
 
 - Id `project-maintenance`, name "DSS Project Maintenance". Works with DSS 13 and later, in the built-in Python 3.9 environment.
@@ -17,7 +22,7 @@ First version of **DSS Project Maintenance**.
 ### Clear Datasets by Tags
 
 - Clears the data of the datasets selected by included tags and excluded tags. Each list takes tags typed by hand and category tags picked from a list, and matches "Any" (at least one tag) or "All" (every tag).
-- "Simulate" is checked by default: nothing is cleared until it is unchecked.
+- "Simulate" is checked by default: nothing is cleared until it is unchecked. A simulation marks the datasets that a real run would clear "Cleared (Simulate)" (status code `WOULD_BE_CLEARED`).
 - Advanced options: "Clear shared datasets" (checked), "Clear partitioned datasets" and "Clear datasets with no recipe" (unchecked). When the user cannot read the sharing, each dataset cleared gets the warning "Sharing not checked".
 - External datasets and the summary dataset are never cleared.
 - "If an error occurs", in the "Run" section: "Continue, run ends as success" (default), "Continue, run ends in error", or "Raise exception", which stops at the first dataset that cannot be cleared.
