@@ -1,5 +1,6 @@
 """Tests of the cleanup: which datasets the macro selects, excludes and skips, and how it clears them."""
 
+import logging
 from typing import Any
 
 import pytest
@@ -365,6 +366,24 @@ def test_simulation_is_the_default_and_still_reports_skipped_datasets() -> None:
     assert recap["simulate"] is True
     assert status_of(recap, "ds") == STATUS_WOULD_BE_CLEARED
     assert status_of(recap, "external") == STATUS_SKIPPED
+
+
+@pytest.mark.parametrize(("simulate", "final_status"), [(True, STATUS_WOULD_BE_CLEARED), (False, STATUS_CLEARED)])
+def test_the_log_gives_each_decision_in_the_same_words_in_both_modes(
+    caplog: pytest.LogCaptureFixture, simulate: bool, final_status: str
+) -> None:
+    caplog.set_level(logging.INFO)
+    project = FakeProject([make_dataset("ds", ["a"]), make_dataset("external", ["a"], managed=False)])
+
+    recap, _ = run(MACRO, project, {"included_tags": ["a"], "simulate": simulate})
+
+    # The decisions come before any clear: a real run never logs "Cleared (Simulate)".
+    decisions = [message for message in caplog.messages if message.startswith("Decision for ")]
+    assert decisions == [
+        "Decision for ds: To clear - Has included tags",
+        "Decision for external: Skipped - Is external (connection pg_prod)",
+    ]
+    assert status_of(recap, "ds") == final_status
 
 
 # Clearing and reporting

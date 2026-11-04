@@ -10,6 +10,7 @@ from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
     STATUS_EXCLUDED,
     STATUS_FAILED,
     STATUS_SKIPPED,
+    STATUS_WOULD_BE_CLEARED,
 )
 from dss_maintenance.macros.clear_datasets_by_tags.recap import (
     COLUMNS,
@@ -120,7 +121,15 @@ def test_describe_counts_for_the_log() -> None:
     recap = make_recap([make_row("ok", STATUS_CLEARED), make_row("ko", STATUS_FAILED)])
 
     assert describe_counts(recap) == (
-        "1 cleared, 0 would be cleared, 1 failed, 0 skipped, 0 excluded, out of 2 selected and 10 scanned datasets"
+        "1 cleared, 1 failed, 0 skipped, 0 excluded, out of 2 selected and 10 scanned datasets"
+    )
+
+
+def test_describe_counts_of_a_simulation_has_only_its_statuses() -> None:
+    recap = make_recap([make_row("ds", STATUS_WOULD_BE_CLEARED), make_row("ext", STATUS_SKIPPED)], simulate=True)
+
+    assert describe_counts(recap) == (
+        "1 cleared (simulate), 1 skipped, 0 excluded, out of 2 selected and 10 scanned datasets"
     )
 
 
@@ -238,9 +247,22 @@ def test_a_simulation_says_nothing_was_cleared() -> None:
     html = recap_html(FakeProject([make_dataset("ds", ["a"])]), {"included_tags": ["a"]})
 
     assert "<strong>Simulation: nothing was cleared.</strong>" in html
-    assert 'Uncheck "Simulate"' in html
-    assert metric(html, "Would be cleared") == "1"
-    assert 'dtp-metric-label">Cleared' not in html
+    assert 'Uncheck "Simulate" and run the macro again to clear the datasets marked "Cleared (Simulate)".' in html
+    assert metric(html, "Cleared (Simulate)") == "1"
+    assert 'dtp-metric-label">Cleared<' not in html
+
+
+def test_a_simulation_shows_the_same_label_in_the_table_and_the_grid() -> None:
+    html = recap_html(FakeProject([make_dataset("ds", ["a"])]), {"included_tags": ["a"]})
+
+    table = html[html.index("<table>") :]
+    assert "Cleared (Simulate)</span></td>" in table
+    # The cells, the filter and the CSV export of the grid all take the label from these statuses.
+    found = re.search(r"var statuses = (.*);$", html, re.MULTILINE)
+    assert found
+    statuses = json.loads(found.group(1))
+    assert statuses[STATUS_WOULD_BE_CLEARED]["label"] == "Cleared (Simulate)"
+    assert statuses[STATUS_CLEARED]["label"] == "Cleared"
 
 
 def test_a_simulation_shows_why_a_real_run_would_stop() -> None:
