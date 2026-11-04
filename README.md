@@ -67,4 +67,5 @@ pyproject.toml, uv.lock          Development tools and their versions
 | [Development](docs/development.md) | Set up, run the checks and the tests, release a version. |
 | [Add a macro](docs/adding-a-macro.md) | The steps, in order, to add a macro to the plugin. |
 | [Verification](docs/verification.md) | What the tests prove, and the checks to do on a real DSS. |
+| [Integration tests](docs/integration-tests.md) | Run the macros on a real DSS, as an administrator, an editor and a reader. |
 | [CHANGELOG](CHANGELOG.md) | What changes in each version. |
