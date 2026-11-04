@@ -110,10 +110,10 @@ def test_all_excluded_tags_exclude_only_the_datasets_carrying_every_one() -> Non
 
 
 def test_a_tag_in_both_lists_is_excluded_and_reported() -> None:
-    project = FakeProject([make_dataset("input", ["CDP-DatasetType:Input"]), make_dataset("other", ["tmp"])])
+    project = FakeProject([make_dataset("input", ["Stage:Input"]), make_dataset("other", ["tmp"])])
     config = {
-        "included_category_tags": ["CDP-DatasetType:Input"],
-        "excluded_category_tags": ["CDP-DatasetType:Input"],
+        "included_category_tags": ["Stage:Input"],
+        "excluded_category_tags": ["Stage:Input"],
         **REAL_RUN,
     }
 
@@ -122,7 +122,7 @@ def test_a_tag_in_both_lists_is_excluded_and_reported() -> None:
     assert project.cleared == []
     assert status_of(recap, "input") == STATUS_EXCLUDED
     assert recap["notices"] == [
-        "Tags both included and excluded: CDP-DatasetType:Input. The excluded tags still apply: check the two lists."
+        "Tags both included and excluded: Stage:Input. The excluded tags still apply: check the two lists."
     ]
 
 
