@@ -14,6 +14,7 @@ zip_path.parent.mkdir(exist_ok=True)
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as plugin_zip:
     plugin_zip.write(ROOT / "plugin.json", "plugin.json")
     plugin_zip.write(ROOT / "README.md", "README.md")
+    plugin_zip.write(ROOT / "LICENSE", "LICENSE")
     for folder in ["python-lib", "python-runnables", "resource"]:
         for path in sorted((ROOT / folder).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:

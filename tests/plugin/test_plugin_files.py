@@ -246,6 +246,7 @@ def test_plugin_zip_holds_the_plugin_and_nothing_else() -> None:
         names = plugin_zip.namelist()
 
     assert "plugin.json" in names
+    assert "LICENSE" in names
     for folder in MACRO_FOLDERS:
         assert f"python-runnables/{folder}/runnable.json" in names
         assert f"python-runnables/{folder}/runnable.py" in names
@@ -255,6 +256,7 @@ def test_plugin_zip_holds_the_plugin_and_nothing_else() -> None:
     assert {name.split("/")[0] for name in names} == {
         "plugin.json",
         "README.md",
+        "LICENSE",
         "python-lib",
         "python-runnables",
         "resource",

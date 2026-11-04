@@ -8,12 +8,14 @@ First version of **DSS Project Maintenance**.
 
 ### Changes since 1.0.0-beta
 
+- The plugin is released under [The Unlicense](LICENSE): it is in the public domain, and anyone may use it for any purpose. The zip contains the `LICENSE` file.
 - Clear Datasets by Tags: in a simulation, the status "Would be cleared" is now "Cleared (Simulate)", in the table, the figures and the banner. Its code stays `WOULD_BE_CLEARED`, in the JSON recap and in the summary dataset.
 - Clear Datasets by Tags, in the log: the decision for each dataset says "To clear" instead of "Would be cleared", and the line of totals only gives the statuses the run can have.
 
 ### Plugin
 
 - Id `project-maintenance`, name "DSS Project Maintenance". Works with DSS 13 and later, in the built-in Python 3.9 environment.
+- Released under The Unlicense (public domain).
 - The macros are in the **Project maintenance** section of the Macros page of a project.
 - Plugin settings:
   - **AG Grid URL** and **AG Grid integrity hash**: the AG Grid that downloaded recaps load. Several hashes, separated by spaces, are accepted.

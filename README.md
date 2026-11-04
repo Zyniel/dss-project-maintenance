@@ -7,7 +7,7 @@ A Dataiku DSS plugin with macros to maintain projects. A macro that changes data
 | Plugin id | `project-maintenance` |
 | Version | 1.0.0 (see the [CHANGELOG](CHANGELOG.md)) |
 | Works with | DSS 13 and later, in the built-in Python 3.9 environment, with no code environment |
-| License | No License |
+| License | [The Unlicense](LICENSE): public domain, free to use for any purpose |
 
 ## The macros
 
@@ -62,6 +62,7 @@ pyproject.toml, uv.lock          Development tools and their versions
 
 | Document | Content |
 |---|---|
+| [Admin guide](docs/admin-guide.md) | For DSS administrators: install, rights, what the macros change, network. |
 | [Architecture](docs/architecture.md) | How the code is split, the import rules, the steps of a run. |
 | [Development](docs/development.md) | Set up, run the checks and the tests, release a version. |
 | [Add a macro](docs/adding-a-macro.md) | The steps, in order, to add a macro to the plugin. |
