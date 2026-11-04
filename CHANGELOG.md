@@ -11,6 +11,7 @@ First version of **DSS Project Maintenance**.
 - The plugin is released under [The Unlicense](LICENSE): it is in the public domain, and anyone may use it for any purpose. The zip contains the `LICENSE` file.
 - Clear Datasets by Tags: in a simulation, the status "Would be cleared" is now "Cleared (Simulate)", in the table, the figures and the banner. Its code stays `WOULD_BE_CLEARED`, in the JSON recap and in the summary dataset.
 - Clear Datasets by Tags, in the log: the decision for each dataset says "To clear" instead of "Would be cleared", and the line of totals only gives the statuses the run can have.
+- For developers: integration tests that run the macros on a real DSS, in `tests/integration`. They are skipped without a config file: see [integration tests](docs/integration-tests.md).
 
 ### Plugin
 
@@ -49,3 +50,4 @@ First version of **DSS Project Maintenance**.
 - Each macro describes its recap (`RecapPage`): the shared code lays it out.
 - The tests are in folders: `tests/core`, `tests/recap`, `tests/macros/<macro>`, `tests/plugin`. The tests of `tests/plugin` run on each macro.
 - Checked on DSS 13.4.4: see [verification](docs/verification.md).
+- Integration tests on a real DSS, in `tests/integration`, skipped without a config file: see [integration tests](docs/integration-tests.md).

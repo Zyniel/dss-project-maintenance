@@ -55,6 +55,7 @@ The tests have the same layout as `python-lib`:
 | `tests/recap/` | The HTML recap, with a page made by hand, and the summary dataset. |
 | `tests/macros/<macro>/` | One macro: its work, its options, its recap, its form, its `runnable.py`. |
 | `tests/plugin/` | The plugin files, for **each** macro: form, `runnable.py`, import rules, zip. A new macro gets these tests with nothing to write. |
+| `tests/integration/` | The macros on a real DSS. Skipped unless you give a config file: see [integration tests](integration-tests.md). |
 
 To run only a part:
 
@@ -64,7 +65,7 @@ uv run pytest tests/macros/clear_datasets_by_tags
 
 Two test files can have the same name in two different folders (`--import-mode=importlib` in `pyproject.toml`).
 
-The fake objects copy the shape of the DSS answers. If a real DSS answers in another way (see [verification](verification.md)), fix the fake object and the code together.
+The fake objects copy the shape of the DSS answers. If a real DSS answers in another way (see [verification](verification.md) and the [integration tests](integration-tests.md)), fix the fake object and the code together.
 
 ## The CI
 

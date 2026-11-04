@@ -9,6 +9,8 @@ dependencies = []
 [dependency-groups]
 # mypy 2 can no longer check code against Python 3.9, the version DSS 13 runs.
 dev = ["mypy>=1.19,<2", "pytest", "ruff"]
+# The DSS API client, only for the integration tests on a real DSS 13: see docs/integration-tests.md.
+integration = ["dataiku-api-client>=13.4,<14"]
 
 [tool.uv]
 package = false
@@ -39,5 +41,5 @@ disallow_subclassing_any = false
 files = ["python-lib", "resource", "tests", "build_plugin_zip.py"]
 
 [[tool.mypy.overrides]]
-module = ["dataiku", "dataiku.*"]
+module = ["dataiku", "dataiku.*", "dataikuapi", "dataikuapi.*"]
 ignore_missing_imports = true
