@@ -2,21 +2,32 @@
 
 The changes of each version of the plugin, the most recent first.
 
+## 1.0.1 - 2026-11-05
+
+The changes since 1.0.0, which was released as the pre-release `1.0.0-beta`.
+
+### Plugin
+
+- Released under [The Unlicense](LICENSE): the plugin is in the public domain, and anyone may use it for any purpose. The zip contains the `LICENSE` file.
+- A guide for DSS administrators: [admin guide](docs/admin-guide.md).
+
+### Clear Datasets by Tags
+
+- In a simulation, the status "Would be cleared" is now "Cleared (Simulate)", in the table, the figures and the banner. Its code stays `WOULD_BE_CLEARED`, in the JSON recap and in the summary dataset.
+- In the log, the decision for each dataset says "To clear" instead of "Would be cleared", and the line of totals only gives the statuses the run can have.
+
+### For developers
+
+- Integration tests that run the macros on a real DSS, in `tests/integration`. They are skipped without a config file: see [integration tests](docs/integration-tests.md).
+- Claude sessions on this repository commit with the GitHub noreply address (`.claude/settings.json`).
+
 ## 1.0.0 - 2026-11-04
 
-First version of **DSS Project Maintenance**.
-
-### Changes since 1.0.0-beta
-
-- The plugin is released under [The Unlicense](LICENSE): it is in the public domain, and anyone may use it for any purpose. The zip contains the `LICENSE` file.
-- Clear Datasets by Tags: in a simulation, the status "Would be cleared" is now "Cleared (Simulate)", in the table, the figures and the banner. Its code stays `WOULD_BE_CLEARED`, in the JSON recap and in the summary dataset.
-- Clear Datasets by Tags, in the log: the decision for each dataset says "To clear" instead of "Would be cleared", and the line of totals only gives the statuses the run can have.
-- For developers: integration tests that run the macros on a real DSS, in `tests/integration`. They are skipped without a config file: see [integration tests](docs/integration-tests.md).
+First version of **DSS Project Maintenance**, released as the pre-release `1.0.0-beta`.
 
 ### Plugin
 
 - Id `project-maintenance`, name "DSS Project Maintenance". Works with DSS 13 and later, in the built-in Python 3.9 environment.
-- Released under The Unlicense (public domain).
 - The macros are in the **Project maintenance** section of the Macros page of a project.
 - Plugin settings:
   - **AG Grid URL** and **AG Grid integrity hash**: the AG Grid that downloaded recaps load. Several hashes, separated by spaces, are accepted.
@@ -25,7 +36,7 @@ First version of **DSS Project Maintenance**.
 ### Clear Datasets by Tags
 
 - Clears the data of the datasets selected by included tags and excluded tags. Each list takes tags typed by hand and category tags picked from a list, and matches "Any" (at least one tag) or "All" (every tag).
-- "Simulate" is checked by default: nothing is cleared until it is unchecked. A simulation marks the datasets that a real run would clear "Cleared (Simulate)" (status code `WOULD_BE_CLEARED`).
+- "Simulate" is checked by default: nothing is cleared until it is unchecked.
 - Advanced options: "Clear shared datasets" (checked), "Clear partitioned datasets" and "Clear datasets with no recipe" (unchecked). When the user cannot read the sharing, each dataset cleared gets the warning "Sharing not checked".
 - External datasets and the summary dataset are never cleared.
 - "If an error occurs", in the "Run" section: "Continue, run ends as success" (default), "Continue, run ends in error", or "Raise exception", which stops at the first dataset that cannot be cleared.
@@ -50,4 +61,3 @@ First version of **DSS Project Maintenance**.
 - Each macro describes its recap (`RecapPage`): the shared code lays it out.
 - The tests are in folders: `tests/core`, `tests/recap`, `tests/macros/<macro>`, `tests/plugin`. The tests of `tests/plugin` run on each macro.
 - Checked on DSS 13.4.4: see [verification](docs/verification.md).
-- Integration tests on a real DSS, in `tests/integration`, skipped without a config file: see [integration tests](docs/integration-tests.md).

@@ -5,3 +5,5 @@ __pycache__/
 .ruff_cache/
 .venv/
 dist/
+# The config file of the integration tests holds API keys: see docs/integration-tests.md.
+/dss-integration.json

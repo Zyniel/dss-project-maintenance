@@ -1,6 +1,6 @@
 {
     "id": "project-maintenance",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "meta": {
         "label": "DSS Project Maintenance",
         "description": "Macros to maintain DSS projects: clear the data of datasets selected by their tags, report the tags of datasets. Macros that change data simulate by default.",
