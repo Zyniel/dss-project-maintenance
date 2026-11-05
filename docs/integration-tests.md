@@ -18,7 +18,7 @@ Tests that run the macros on a real DSS, in `tests/integration`. The other tests
 
 ## The config file
 
-Put it outside the repository, and never commit it: it holds API keys.
+It holds API keys: never commit it. Put it outside the repository, or at its root as `dss-integration.json`, which git ignores.
 
 ```json
 {

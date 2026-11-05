@@ -5,7 +5,7 @@ A Dataiku DSS plugin with macros to maintain projects. A macro that changes data
 | | |
 |---|---|
 | Plugin id | `project-maintenance` |
-| Version | 1.0.0 (see the [CHANGELOG](CHANGELOG.md)) |
+| Version | 1.0.1 (see the [CHANGELOG](CHANGELOG.md)) |
 | Works with | DSS 13 and later, in the built-in Python 3.9 environment, with no code environment |
 | License | [The Unlicense](LICENSE): public domain, free to use for any purpose |
 
