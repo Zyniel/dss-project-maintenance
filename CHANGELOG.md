@@ -19,7 +19,7 @@ The changes since 1.0.0, which was released as the pre-release `1.0.0-beta`.
 ### For developers
 
 - Integration tests that run the macros on a real DSS, in `tests/integration`. They are skipped without a config file: see [integration tests](docs/integration-tests.md).
-- Claude sessions on this repository commit with the GitHub noreply address (`.claude/settings.json`).
+- `.claude/settings.json`: Claude Code sessions on this repository commit with the GitHub noreply address, and add no attribution lines to commits and pull requests.
 
 ## 1.0.0 - 2026-11-04
 
