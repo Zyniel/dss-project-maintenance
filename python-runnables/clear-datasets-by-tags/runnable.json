@@ -1,0 +1,192 @@
+{
+    "meta": {
+        "label": "Clear Datasets by Tags",
+        "description": "Clears the data of datasets selected by their tags.",
+        "icon": "icon-trash",
+        "category": "Project maintenance"
+    },
+    "impersonate": true,
+    "permissions": [
+        "WRITE_CONF"
+    ],
+    "resultType": "HTML",
+    "resultLabel": "Clear Datasets by Tags recap",
+    "macroRoles": [
+        {
+            "type": "PROJECT_MACROS"
+        }
+    ],
+    "paramsPythonSetup": "tag_choices.py",
+    "params": [
+        {
+            "name": "included_tags",
+            "type": "STRINGS",
+            "label": "Included Tags",
+            "description": "Tags to select for purge",
+            "defaultValue": []
+        },
+        {
+            "name": "included_category_tags",
+            "type": "MULTISELECT",
+            "label": "Included Cat. Tags",
+            "description": "Category tags on this project's datasets.",
+            "getChoicesFromPython": true,
+            "disableAutoReload": true,
+            "defaultValue": []
+        },
+        {
+            "name": "included_match",
+            "type": "SELECT",
+            "label": "Included tags match",
+            "selectChoices": [
+                {
+                    "value": "ANY",
+                    "label": "Any included tags"
+                },
+                {
+                    "value": "ALL",
+                    "label": "All included tags"
+                }
+            ],
+            "defaultValue": "ANY",
+            "mandatory": true
+        },
+        {
+            "name": "excluded_tags",
+            "type": "STRINGS",
+            "label": "Excluded Tags",
+            "description": "Tags to exclude from purge",
+            "defaultValue": []
+        },
+        {
+            "name": "excluded_category_tags",
+            "type": "MULTISELECT",
+            "label": "Excluded Cat. Tags",
+            "description": "Category tags on this project's datasets.",
+            "getChoicesFromPython": true,
+            "disableAutoReload": true,
+            "defaultValue": []
+        },
+        {
+            "name": "excluded_match",
+            "type": "SELECT",
+            "label": "Excluded tags match",
+            "selectChoices": [
+                {
+                    "value": "ANY",
+                    "label": "Any excluded tags"
+                },
+                {
+                    "value": "ALL",
+                    "label": "All excluded tags"
+                }
+            ],
+            "defaultValue": "ANY",
+            "mandatory": true
+        },
+        {
+            "name": "simulate",
+            "type": "BOOLEAN",
+            "label": "Simulate",
+            "description": "If checked, only shows what would be cleared.",
+            "defaultValue": true
+        },
+        {
+            "type": "SEPARATOR",
+            "label": "Advanced options"
+        },
+        {
+            "name": "purge_shared",
+            "type": "BOOLEAN",
+            "label": "Clear shared datasets",
+            "description": "Skipping them needs project admin rights.",
+            "defaultValue": true
+        },
+        {
+            "name": "purge_partitioned",
+            "type": "BOOLEAN",
+            "label": "Clear partitioned datasets",
+            "description": "All their partitions are cleared.",
+            "defaultValue": false
+        },
+        {
+            "name": "purge_without_recipe",
+            "type": "BOOLEAN",
+            "label": "Clear datasets with no recipe",
+            "description": "Their data cannot be rebuilt: it is lost for good.",
+            "defaultValue": false
+        },
+        {
+            "type": "SEPARATOR",
+            "label": "Run"
+        },
+        {
+            "name": "on_error",
+            "type": "SELECT",
+            "label": "If an error occurs",
+            "description": "When a dataset cannot be cleared. 'Raise exception' stops at the first one.",
+            "selectChoices": [
+                {
+                    "value": "CONTINUE",
+                    "label": "Continue, run ends as success"
+                },
+                {
+                    "value": "FAIL",
+                    "label": "Continue, run ends in error"
+                },
+                {
+                    "value": "STOP",
+                    "label": "Raise exception"
+                }
+            ],
+            "defaultValue": "CONTINUE",
+            "mandatory": true
+        },
+        {
+            "type": "SEPARATOR",
+            "label": "Summary"
+        },
+        {
+            "name": "recap_to_dataset",
+            "type": "BOOLEAN",
+            "label": "Write to a dataset",
+            "description": "One row per dataset and per run.",
+            "defaultValue": false
+        },
+        {
+            "name": "recap_dataset",
+            "type": "DATASET",
+            "label": "Summary dataset",
+            "description": "A new, empty dataset of this project.",
+            "mandatory": false,
+            "visibilityCondition": "model.recap_to_dataset"
+        },
+        {
+            "name": "recap_append",
+            "type": "BOOLEAN",
+            "label": "Append mode",
+            "description": "Unchecked: each run replaces the content.",
+            "defaultValue": true,
+            "visibilityCondition": "model.recap_to_dataset"
+        },
+        {
+            "name": "on_recap_error",
+            "type": "SELECT",
+            "label": "If the summary is not written",
+            "description": "When the summary dataset cannot be written. The work is done anyway. Use 'Fail the run' in scenarios.",
+            "selectChoices": [
+                {
+                    "value": "CONTINUE",
+                    "label": "Continue"
+                },
+                {
+                    "value": "FAIL",
+                    "label": "Fail the run"
+                }
+            ],
+            "defaultValue": "CONTINUE",
+            "mandatory": true,
+            "visibilityCondition": "model.recap_to_dataset"
+        }
+    ]
+}
