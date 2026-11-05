@@ -1,10 +1,4 @@
 {
-  "env": {
-    "GIT_AUTHOR_NAME": "Zyniel",
-    "GIT_AUTHOR_EMAIL": "3199060+Zyniel@users.noreply.github.com",
-    "GIT_COMMITTER_NAME": "Zyniel",
-    "GIT_COMMITTER_EMAIL": "3199060+Zyniel@users.noreply.github.com"
-  },
   "attribution": {
     "commit": "",
     "pr": ""

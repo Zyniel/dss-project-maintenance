@@ -14,6 +14,14 @@ uv reads two files:
 - `.python-version`: Python 3.9, the version of DSS 13. uv downloads it if needed.
 - `uv.lock`: the exact versions of the tools, the same for everyone and for the CI.
 
+3. Commit with your GitHub noreply address, never a personal or company address: the repository is public. Your address is on GitHub, in **Settings > Emails**. Run this once, at the root of the repository:
+
+```bash
+git config user.email "<id>+<login>@users.noreply.github.com"
+```
+
+Git uses it for your commits in this repository, and for the commits Claude Code makes for you. In **Settings > Emails**, also check "Keep my email addresses private" and "Block command line pushes that expose my email".
+
 ## Run the checks
 
 Bash:

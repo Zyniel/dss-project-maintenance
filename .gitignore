@@ -7,3 +7,7 @@ __pycache__/
 dist/
 # The config file of the integration tests holds API keys: see docs/integration-tests.md.
 /dss-integration.json
+# Claude Code: .claude/settings.json is shared on purpose. These files are personal.
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
