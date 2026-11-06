@@ -1,4 +1,4 @@
-"""Tests of selecting datasets by tags: the two lists of the form, any or all, and the category tag choices."""
+"""Tests of selecting datasets by tags: "Include", the two lists of the form, any or all, the category tag choices."""
 
 from typing import Any
 
@@ -7,8 +7,11 @@ import pytest
 from dss_maintenance.core.tags import (
     MATCH_ALL,
     MATCH_ANY,
+    SCOPE_ALL_DATASETS,
+    SCOPE_TAGS,
     TagSelection,
     describe_match,
+    ignored_included_tags,
     list_category_tag_choices,
     matches,
     read_listed_tag_categories,
@@ -49,15 +52,60 @@ def test_both_lists_are_read_with_how_they_match() -> None:
     assert read_tag_selection(config) == TagSelection(["a", "Stage:Raw"], MATCH_ALL, ["k", "Stage:Gold"], MATCH_ANY)
 
 
-@pytest.mark.parametrize("config", [{"included_tags": ["a"]}, {"excluded_category_tags": ["Stage:Gold"]}])
-def test_an_empty_list_is_ignored(config: dict[str, Any]) -> None:
+def test_an_empty_excluded_list_excludes_nothing() -> None:
+    assert read_tag_selection({"included_tags": ["a"]}).excluded_tags == []
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {},
+        {"included_tags": ["", " "], "excluded_category_tags": []},
+        {"excluded_category_tags": ["Stage:Gold"]},  # In 1.x, this selected every other dataset.
+        {"included_scope": SCOPE_TAGS, "excluded_tags": ["k"]},
+    ],
+)
+def test_the_included_tags_need_at_least_one_tag(config: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match=r"^Give at least one included tag, or choose 'All datasets' in 'Include'\.$"):
+        read_tag_selection(config)
+
+
+@pytest.mark.parametrize("value", [None, ""])
+def test_include_defaults_to_the_included_tags(value: Any) -> None:
+    assert read_tag_selection({"included_scope": value, "included_tags": ["a"]}).included_scope == SCOPE_TAGS
+
+
+@pytest.mark.parametrize("value", ["all", "ALL", "TAGS ", 1, ["ALL_DATASETS"]])
+def test_include_is_tags_or_all_datasets(value: Any) -> None:
+    with pytest.raises(ValueError, match="included_scope must be TAGS or ALL_DATASETS"):
+        read_tag_selection({"included_scope": value, "included_tags": ["a"]})
+
+
+def test_all_datasets_needs_no_tag() -> None:
+    selection = read_tag_selection({"included_scope": SCOPE_ALL_DATASETS})
+
+    assert selection == TagSelection([], MATCH_ANY, [], MATCH_ANY, SCOPE_ALL_DATASETS)
+
+
+def test_all_datasets_ignores_the_included_tags_and_names_them() -> None:
+    # The form hides the included tags with "All datasets", but still sends their values.
+    config = {
+        "included_scope": SCOPE_ALL_DATASETS,
+        "included_tags": ["a"],
+        "included_category_tags": ["Stage:Raw"],
+        "excluded_tags": ["a"],
+    }
+
     selection = read_tag_selection(config)
-    assert selection.included_tags or selection.excluded_tags
+
+    assert (selection.included_tags, selection.excluded_tags) == ([], ["a"])
+    assert ignored_included_tags(config, selection) == ["a", "Stage:Raw"]
+    assert tags_in_both(selection) == []
 
 
-def test_at_least_one_tag_is_needed() -> None:
-    with pytest.raises(ValueError, match="at least one included or excluded tag"):
-        read_tag_selection({"included_tags": ["", " "], "excluded_category_tags": []})
+def test_no_included_tag_is_ignored_with_the_included_tags() -> None:
+    config = {"included_tags": ["a"]}
+    assert ignored_included_tags(config, read_tag_selection(config)) == []
 
 
 def test_a_tag_in_both_lists_does_not_stop_reading_the_form() -> None:
@@ -127,21 +175,30 @@ def test_included_tags_select_and_excluded_tags_flag() -> None:
     assert (selected[1].included_tags, selected[1].excluded_tags) == (["tmp"], ["keep"])
 
 
-def test_without_included_tags_every_dataset_is_selected() -> None:
+@pytest.mark.parametrize(
+    ("excluded_tags", "expected"),
+    [([], [("untagged", False), ("gold", False)]), (["Stage:Gold"], [("untagged", False), ("gold", True)])],
+)
+def test_all_datasets_selects_every_dataset(excluded_tags: list[str], expected: list[tuple[str, bool]]) -> None:
     datasets = [make_dataset("untagged", []), make_dataset("gold", ["Stage:Gold"])]
 
-    selected = select_datasets(datasets, TagSelection([], MATCH_ANY, ["Stage:Gold"], MATCH_ANY))
+    selected = select_datasets(datasets, TagSelection([], MATCH_ANY, excluded_tags, MATCH_ANY, SCOPE_ALL_DATASETS))
 
-    assert [(tagged.dataset["name"], tagged.is_excluded) for tagged in selected] == [
-        ("untagged", False),
-        ("gold", True),
-    ]
+    assert [(tagged.dataset["name"], tagged.is_excluded) for tagged in selected] == expected
+
+
+@pytest.mark.parametrize("match", [MATCH_ANY, MATCH_ALL])
+def test_an_empty_included_list_selects_nothing(match: str) -> None:
+    # all([]) is true: without this rule, ALL would select every dataset.
+    datasets = [make_dataset("untagged", []), make_dataset("tagged", ["a"])]
+
+    assert select_datasets(datasets, TagSelection([], match, [], MATCH_ANY)) == []
 
 
 def test_all_excluded_tags_exclude_only_the_datasets_carrying_every_one() -> None:
     datasets = [make_dataset("both", ["k1", "k2"]), make_dataset("one", ["k1"])]
 
-    selected = select_datasets(datasets, TagSelection([], MATCH_ANY, ["k1", "k2"], MATCH_ALL))
+    selected = select_datasets(datasets, TagSelection([], MATCH_ANY, ["k1", "k2"], MATCH_ALL, SCOPE_ALL_DATASETS))
 
     assert [tagged.is_excluded for tagged in selected] == [True, False]
 

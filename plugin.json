@@ -1,9 +1,9 @@
 {
     "id": "project-maintenance",
-    "version": "1.0.2",
+    "version": "2.0.0-beta",
     "meta": {
         "label": "DSS Project Maintenance",
-        "description": "Macros to maintain DSS projects: clear the data of datasets selected by their tags, report the tags of datasets. Macros that change data simulate by default.",
+        "description": "Macros to maintain DSS projects: clear the data of datasets selected by their tags, or of all datasets, report the tags of datasets. Macros that change data simulate by default.",
         "author": "François CABANNES",
         "icon": "icon-wrench",
         "tags": ["Admin"],

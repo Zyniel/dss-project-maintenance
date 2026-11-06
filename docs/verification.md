@@ -6,7 +6,7 @@ What the tests prove, and what to check on a real DSS.
 
 | What | How |
 |---|---|
-| The shared code and each macro | 353 tests with fake DSS objects, on Python 3.9 and 3.13. |
+| The shared code and each macro | 380 tests with fake DSS objects, on Python 3.9 and 3.13. |
 | The forms match the code, `runnable.py` loads, the import rules are respected | Tests of `tests/plugin`, for each macro. |
 | The DSS API calls exist, with the expected shape | Read in the code of the public API client, `dataiku-api-client` 15.2.1. |
 | The plugin works on a real DSS | Run on a local DSS 13.4.4 container: see the checks below. Some checks are also [integration tests](integration-tests.md), which a test DSS can run again. |
@@ -20,6 +20,8 @@ Use an instance with a license, for example a local DSS 13.4.4 container, and fo
 - **Test projects only:** create test projects, never touch existing projects.
 - **Licenses:** a test user can take a license seat. Prefer existing users.
 - **Clean up:** at the end, delete the test projects, the test users and the API keys.
+
+Without a license, DSS 13.4.4 runs the macros from the API with the key of an administrator, but its UI, the users who are not administrators and the scenario steps that run a macro do not work (2026-11-06).
 
 For each check, write the result and the date. If DSS answers in another way, fix the code and the fake objects of `tests/support/fakes.py` together.
 
@@ -52,6 +54,7 @@ For each check, write the result and the date. If DSS answers in another way, fi
 | 18 | "If an error occurs" set to "Continue, run ends in error" or "Raise exception", in a scenario | DSS shows the error message, and the scenario step turns red. "Raise exception" stops at the first dataset that cannot be cleared. | To do. |
 | 19 | The "Cat. Tags" lists | `resource/tag_choices.py` imports from `python-lib`, and `dataiku.default_project_key()` gives the project of the form. | OK as instance admin. DSS shows them as a tag input, without the groups. Simple editor: to do. |
 | 20 | A category tag picked only in "Included Cat. Tags" | The form sends nothing in "Excluded Cat. Tags". | OK. |
+| 28 | "Include" set to "All datasets" | The three included fields are hidden, and their values are still sent. A form remembered from 1.x gets "Datasets with the included tags". A run clears every managed dataset except the excluded ones. Excluded tags alone are refused. | Run from the API: OK, 13.4.4, 2026-11-06, integration tests. Form: read in the DSS 13.4.4 frontend, 2026-11-06: `visibilityCondition` works the same for every parameter type and hides with `ng-show`, so the value stays in the sent config; a parameter missing from the remembered values gets its `defaultValue`. The expression, run with the AngularJS 1.9.1 of DSS: shown with `TAGS` or no value, hidden with `ALL_DATASETS`. Seen in the UI: to do, on a DSS with a license. |
 
 ### Report Dataset Tags
 

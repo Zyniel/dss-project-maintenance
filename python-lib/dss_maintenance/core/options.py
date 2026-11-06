@@ -35,8 +35,9 @@ RECAP_ERROR_CHOICES = {ON_ERROR_CONTINUE: "Continue", ON_ERROR_FAIL: "Fail the r
 FAILING_ON_ERROR = (ON_ERROR_FAIL, ON_ERROR_STOP)
 
 # Default value and label of the options of the "Run" section, only in the forms of the macros that
-# change data. A test checks each runnable.json.
-RUN_OPTION_DEFAULTS: dict[str, Any] = {"on_error": ON_ERROR_CONTINUE}
+# change data. A test checks each runnable.json. By default, every item is tried, and an error fails the
+# run: a scenario step turns red.
+RUN_OPTION_DEFAULTS: dict[str, Any] = {"on_error": ON_ERROR_FAIL}
 RUN_OPTION_LABELS = {"on_error": "If an error occurs"}
 
 # Default value and label of the options of the "Summary" section, in every macro form. A test checks

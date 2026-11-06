@@ -120,10 +120,17 @@ def test_a_run_with_no_problem_has_the_outcome_success(caplog: pytest.LogCapture
     assert "dtp-banner" not in html.split("</style>")[1]  # No banner at all.
 
 
-def test_a_failed_item_gives_a_warning_by_default(caplog: pytest.LogCaptureFixture) -> None:
+def test_a_failed_item_fails_the_run_by_default() -> None:
+    with pytest.raises(RunFailed, match=r"^Failed: d2\."):
+        run_with(FakeProject([make_dataset("d1", []), make_dataset("d2", [])]), {"fail": ["d2"]})
+
+
+def test_continue_gives_a_warning_after_a_failed_item(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
 
-    html = run_with(FakeProject([make_dataset("d1", []), make_dataset("d2", [])]), {"fail": ["d2"]})
+    html = run_with(
+        FakeProject([make_dataset("d1", []), make_dataset("d2", [])]), {"fail": ["d2"], "on_error": "CONTINUE"}
+    )
 
     assert '<div class="dtp-banner"><strong>Warning: the run went on after these errors:</strong>' in html
     assert "<li>Failed: d2.</li>" in html

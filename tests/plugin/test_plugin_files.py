@@ -6,6 +6,7 @@ macro package of the same name. They also check plugin.json, the resource files 
 
 import importlib
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -36,6 +37,8 @@ RUN_PARAMS = ["on_error"]
 RECAP_PARAMS = ["recap_to_dataset", "recap_dataset", "recap_append", "on_recap_error"]
 # The options shown only when "Write to a dataset" is checked.
 RECAP_DATASET_PARAMS = ["recap_dataset", "recap_append", "on_recap_error"]
+# The visibility conditions of the forms: "model.<checkbox>", or "model.<select list> != '<one of its choices>'".
+VISIBILITY_CONDITION = re.compile(r"model\.(\w+)(?: != '(\w+)')?")
 # The select lists of what to do on errors, with their choices.
 ERROR_CHOICE_PARAMS = {"on_error": RUN_ERROR_CHOICES, "on_recap_error": RECAP_ERROR_CHOICES}
 
@@ -169,16 +172,20 @@ def test_only_a_macro_that_changes_data_has_the_run_options(folder: str) -> None
 @pytest.mark.parametrize("folder", MACRO_FOLDERS)
 def test_the_form_parameters_are_well_formed(folder: str) -> None:
     form = read_json(RUNNABLES / folder / "runnable.json")
-    names = list(named_params(form))
+    params = named_params(form)
 
-    assert len(names) == len(set(names))
+    assert len(params) == len([param for param in form["params"] if "name" in param])
     for param in form["params"]:
         if param["type"] in ("STRINGS", "MULTISELECT"):
             # Each list gets its own empty default: a DSS form once sent the value of one list in another.
             assert param.get("defaultValue") == [], param["name"]
         condition = param.get("visibilityCondition")
         if condition:
-            assert condition.startswith("model.") and condition[len("model.") :] in names, condition
+            match = VISIBILITY_CONDITION.fullmatch(condition)
+            assert match and match.group(1) in params, condition
+            if match.group(2):
+                choices = [choice["value"] for choice in params[match.group(1)]["selectChoices"]]
+                assert match.group(2) in choices, condition
 
 
 @pytest.mark.parametrize("folder", MACRO_FOLDERS)

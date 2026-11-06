@@ -21,7 +21,7 @@ The macros run with the rights of the user who runs them (`"impersonate": true`)
 
 | Macro | Who can run it | What it changes |
 |---|---|---|
-| Clear Datasets by Tags | Users who can write in the project | The data of the selected datasets. It cannot be undone. |
+| Clear Datasets by Tags | Users who can write in the project | The data of the selected datasets, which can be all the datasets of the project. It cannot be undone. |
 | Report Dataset Tags | Users who can read the project | Nothing. |
 
 Some checks need more rights. Only project administrators can read which datasets are shared, and only DSS administrators can read the global tag categories. Without these rights, the recap says what was not checked.

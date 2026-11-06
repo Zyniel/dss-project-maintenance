@@ -24,6 +24,7 @@ from support.fakes import FakeProject, make_dataset
 from support.runs import row_of, run, status_of
 
 REAL_RUN = {"simulate": False}
+ALL_DATASETS = {"included_scope": "ALL_DATASETS"}
 
 # Selecting the datasets
 
@@ -66,17 +67,68 @@ def test_matching_is_exact_and_case_sensitive(dataset_tag: str) -> None:
     assert recap["datasets"] == []
 
 
-def test_excluded_tags_alone_clear_every_other_dataset() -> None:
+def test_all_datasets_clears_every_dataset_except_the_excluded_ones() -> None:
     project = FakeProject(
         [make_dataset("untagged", []), make_dataset("other", ["x"]), make_dataset("gold", ["Stage:Gold", "x"])]
     )
 
-    recap, _ = run(MACRO, project, {"excluded_category_tags": ["Stage:Gold"], **REAL_RUN})
+    recap, _ = run(MACRO, project, {"excluded_category_tags": ["Stage:Gold"], **ALL_DATASETS, **REAL_RUN})
 
     assert project.cleared == ["other", "untagged"]
     gold = row_of(recap, "gold")
     assert (gold["status"], gold["detail"]) == (STATUS_EXCLUDED, "Has excluded tags")
     assert gold["excluded_tags"] == ["Stage:Gold"]
+
+
+def test_all_datasets_without_excluded_tags_clears_every_dataset_the_rules_allow() -> None:
+    project = FakeProject(
+        [
+            make_dataset("untagged", []),
+            make_dataset("tagged", ["x"]),
+            make_dataset("shared", []),
+            make_dataset("external", [], managed=False),
+            make_dataset("partitioned", [], partitioned=True),
+            make_dataset("source", []),
+            make_dataset("recap", []),
+        ],
+        shared={"shared": ["PROJ_B"]},
+        without_recipe=["source"],
+    )
+    config = {"purge_shared": False, "recap_dataset": "recap", **ALL_DATASETS, **REAL_RUN}
+
+    recap, _ = run(MACRO, project, config)
+
+    assert project.cleared == ["tagged", "untagged"]
+    assert {row["name"]: row["skip_code"] for row in recap["datasets"] if row["status"] == STATUS_SKIPPED} == {
+        "external": SKIP_EXTERNAL,
+        "partitioned": SKIP_PARTITIONED,
+        "recap": SKIP_RECAP_DATASET,
+        "shared": SKIP_SHARED,
+        "source": SKIP_WITHOUT_RECIPE,
+    }
+    assert recap["notices"] == []
+
+
+def test_only_excluded_tags_are_refused_before_clearing_anything() -> None:
+    # In 1.x, this cleared every other dataset. Now "All datasets" must be chosen.
+    project = FakeProject([make_dataset("ds", [])])
+
+    with pytest.raises(ValueError, match="Give at least one included tag, or choose 'All datasets' in 'Include'"):
+        run(MACRO, project, {"excluded_tags": ["keep"], **REAL_RUN})
+
+    assert project.cleared == []
+
+
+def test_all_datasets_ignores_the_included_tags_with_a_notice() -> None:
+    project = FakeProject([make_dataset("tmp", ["tmp"]), make_dataset("other", [])])
+    config = {"included_tags": ["tmp"], "included_category_tags": ["Stage:Raw"], **ALL_DATASETS, **REAL_RUN}
+
+    recap, _ = run(MACRO, project, config)
+
+    assert project.cleared == ["other", "tmp"]
+    assert (recap["included_scope"], recap["included_tags"], recap["included_tag_counts"]) == ("ALL_DATASETS", [], {})
+    assert row_of(recap, "tmp")["included_tags"] == []
+    assert recap["notices"] == ["Included tags ignored, since 'Include' is 'All datasets': tmp, Stage:Raw."]
 
 
 def test_an_excluded_dataset_is_never_cleared_even_when_included() -> None:
@@ -167,7 +219,7 @@ def test_a_dataset_without_the_managed_flag_counts_as_external() -> None:
 def test_the_recap_dataset_is_never_cleared_by_its_own_run() -> None:
     project = FakeProject([make_dataset("recap", []), make_dataset("data", []), make_dataset("kept", ["k"])])
 
-    recap, _ = run(MACRO, project, {"excluded_tags": ["k"], "recap_dataset": "recap", **REAL_RUN})
+    recap, _ = run(MACRO, project, {"excluded_tags": ["k"], "recap_dataset": "recap", **ALL_DATASETS, **REAL_RUN})
 
     assert project.cleared == ["data"]
     assert (row_of(recap, "recap")["skip_code"], row_of(recap, "recap")["detail"]) == (
@@ -327,7 +379,7 @@ def test_an_unreadable_flow_is_a_notice_when_the_option_is_checked() -> None:
 def test_an_excluded_tag_on_no_dataset_neither_stops_nor_warns() -> None:
     project = FakeProject([make_dataset("gold", ["Stage:Gold"]), make_dataset("other", [])])
 
-    recap, _ = run(MACRO, project, {"excluded_tags": ["NoInList", "Stage:Gold"], **REAL_RUN})
+    recap, _ = run(MACRO, project, {"excluded_tags": ["NoInList", "Stage:Gold"], **ALL_DATASETS, **REAL_RUN})
 
     assert project.cleared == ["other"]
     assert recap["excluded_tag_counts"] == {"NoInList": 0, "Stage:Gold": 1}
@@ -384,6 +436,21 @@ def test_the_log_gives_each_decision_in_the_same_words_in_both_modes(
         "Decision for external: Skipped - Is external (connection pg_prod)",
     ]
     assert status_of(recap, "ds") == final_status
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ({"included_tags": ["a"]}, "Included tags (ANY): ['a'] | excluded tags (ANY): none"),
+        ({"excluded_tags": ["k"], **ALL_DATASETS}, "All datasets | excluded tags (ANY): ['k']"),
+    ],
+)
+def test_the_log_gives_the_selection(caplog: pytest.LogCaptureFixture, config: dict[str, Any], expected: str) -> None:
+    caplog.set_level(logging.INFO)
+
+    run(MACRO, FakeProject([]), config)
+
+    assert expected in caplog.messages
 
 
 # Clearing and reporting
@@ -460,10 +527,10 @@ def test_no_selected_dataset_still_completes_the_progress() -> None:
 
 
 def test_the_recap_says_which_macro_ran_and_how_the_lists_match() -> None:
-    recap, _ = run(MACRO, FakeProject([]), {"excluded_tags": ["k"]})
+    recap, _ = run(MACRO, FakeProject([]), {"excluded_tags": ["k"], **ALL_DATASETS})
 
     assert (recap["macro"], recap["macro_label"]) == ("clear-datasets-by-tags", "Clear Datasets by Tags")
-    assert (recap["included_match"], recap["excluded_match"]) == ("ANY", "ANY")
+    assert (recap["included_scope"], recap["included_match"], recap["excluded_match"]) == ("ALL_DATASETS", "ANY", "ANY")
 
 
 # The detail of selected and excluded datasets
@@ -477,7 +544,7 @@ def test_the_recap_says_which_macro_ran_and_how_the_lists_match() -> None:
             {"included_tags": ["a"], "included_match": "ALL", "excluded_tags": ["k"], "excluded_match": "ALL"},
             {"in": "Has all included tags", "both": "Has all excluded tags"},
         ),
-        ({"excluded_tags": ["k"]}, {"in": "", "both": "Has excluded tags"}),  # Without included tags, all are in.
+        ({"excluded_tags": ["k"], **ALL_DATASETS}, {"in": "", "both": "Has excluded tags"}),
     ],
 )
 def test_the_detail_says_why_a_dataset_is_selected_or_excluded(

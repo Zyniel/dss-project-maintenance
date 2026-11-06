@@ -60,6 +60,7 @@ def make_recap(rows: list[dict[str, Any]], **values: Any) -> dict[str, Any]:
         "started_at": "2026-11-02T19:10:00Z",
         "simulate": False,
         "options": {},
+        "included_scope": "TAGS",
         "included_tags": ["a"],
         "included_match": "ANY",
         "excluded_tags": [],
@@ -112,6 +113,7 @@ def test_summary_of_a_real_run_is_plain_json() -> None:
     assert summary["macro"] == "clear-datasets-by-tags"
     assert summary["run_by"] == "jdoe"
     assert summary["options"]["simulate"] is False
+    assert (summary["included_scope"], summary["included_tags"]) == ("TAGS", ["a"])
     ok = summary["datasets"][1]
     assert (ok["name"], ok["status"], ok["shared_with"]) == ("ok", STATUS_CLEARED, ["B"])
     assert summary["datasets"][0]["skip_code"] == "EXTERNAL"
@@ -276,12 +278,13 @@ def test_a_simulation_shows_why_a_real_run_would_stop() -> None:
 def test_excluded_datasets_are_counted_and_listed() -> None:
     project = FakeProject([make_dataset("gold", ["keep"]), make_dataset("tmp", [])])
 
-    html = recap_html(project, {"excluded_tags": ["keep"]})
+    html = recap_html(project, {"included_scope": "ALL_DATASETS", "excluded_tags": ["keep"]})
 
     assert metric(html, "Excluded") == "1"
     assert '<span class="dtp-status"><svg class="dtp-muted"' in html
     assert "</svg>Excluded</span></td>" in html
-    assert "None: every dataset of the project is selected." in html
+    assert "All datasets of the project." in html
+    assert "<h3>Included tags" not in html
 
 
 def test_the_table_row_joins_the_detail_and_the_warnings() -> None:
@@ -312,6 +315,12 @@ def test_nothing_selected_shows_a_message() -> None:
     assert "<table>" not in html
 
 
+def test_all_datasets_in_an_empty_project_shows_a_message() -> None:
+    html = recap_html(FakeProject([]), {"included_scope": "ALL_DATASETS"})
+
+    assert "This project has no dataset." in html
+
+
 def test_an_included_tag_on_no_dataset_stands_out_and_the_match_is_shown() -> None:
     project = FakeProject([make_dataset("ds", ["a", "keep"])])
     config = {"included_tags": ["a", "typo"], "excluded_tags": ["keep", "NoInList"], "excluded_match": "ALL"}
@@ -333,10 +342,10 @@ def test_notices_and_options_are_shown() -> None:
 
     html = recap_html(project, config)
 
-    assert "<li>Sharing not checked." in html
+    assert '<div class="dtp-banner">Sharing not checked.' in html
     assert '<span class="dtp-tag">Clear partitioned datasets: no</span>' in html
     assert '<span class="dtp-tag">Clear shared datasets: yes</span>' in html
-    assert '<span class="dtp-tag">If an error occurs: Continue, run ends as success</span>' in html
+    assert '<span class="dtp-tag">If an error occurs: Continue, run ends in error</span>' in html
     assert '<span class="dtp-tag">If the summary is not written: Continue</span>' in html
     assert '<span class="dtp-tag">Summary dataset: recap, earlier runs kept</span>' in html
 

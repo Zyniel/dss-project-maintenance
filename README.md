@@ -5,7 +5,7 @@ A Dataiku DSS plugin with macros to maintain projects. A macro that changes data
 | | |
 |---|---|
 | Plugin id | `project-maintenance` |
-| Version | 1.0.2 (see the [CHANGELOG](CHANGELOG.md)) |
+| Version | 2.0.0-beta, a pre-release (see the [CHANGELOG](CHANGELOG.md)) |
 | Works with | DSS 13 and later, in the built-in Python 3.9 environment, with no code environment |
 | License | [The Unlicense](LICENSE): public domain, free to use for any purpose |
 
@@ -15,7 +15,7 @@ In a project, open **Macros**: the macros of the plugin are in the **Project mai
 
 | Macro | What it does | Documentation |
 |---|---|---|
-| Clear Datasets by Tags | Clears the data of datasets selected by their tags. | [User guide](docs/macros/clear-datasets-by-tags/user-guide.md), [automation](docs/macros/clear-datasets-by-tags/automation.md) |
+| Clear Datasets by Tags | Clears the data of the datasets with the included tags, or of all datasets, except the excluded ones. | [User guide](docs/macros/clear-datasets-by-tags/user-guide.md), [automation](docs/macros/clear-datasets-by-tags/automation.md) |
 | Report Dataset Tags | Reports how the datasets use tags: tags in use, unused tags, unknown category tags, datasets with no tag. Changes nothing. | [User guide](docs/macros/report-dataset-tags/user-guide.md), [automation](docs/macros/report-dataset-tags/automation.md) |
 
 ## Install

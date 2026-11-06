@@ -176,7 +176,7 @@ def test_an_unknown_category_stands_out_and_unchecked_figures_are_hidden() -> No
     html = build_recap_html(recap, build_recap_page(recap))
     assert 'dtp-metric-label">Unknown' not in html
     assert "No category tag on the datasets." in html
-    assert "<li>Category tags not checked" in html
+    assert '<div class="dtp-banner">Category tags not checked' in html
 
 
 def test_a_project_with_no_dataset_and_no_tag_shows_a_message() -> None:

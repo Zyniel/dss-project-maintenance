@@ -401,9 +401,8 @@ def build_outcome_banners(recap: dict[str, Any]) -> list[Banner]:
 
 def build_run_banners(recap: dict[str, Any]) -> list[Banner]:
     """Return the banners every recap has after those of the macro: the notices, and the recap dataset written."""
-    banners = []
-    if recap["notices"]:
-        banners.append(Banner(TONE_CAUTION, items=tuple(recap["notices"])))
+    # One banner per notice, as text: a list with no title above it would be indented.
+    banners = [Banner(TONE_CAUTION, text=notice) for notice in recap["notices"]]
 
     result = recap["recap_dataset_result"]
     if result and not result["error"]:
