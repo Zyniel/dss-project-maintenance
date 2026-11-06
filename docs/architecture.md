@@ -4,10 +4,10 @@ How the code is split, which rules keep it clean, and the steps of a run.
 
 ## The three parts of the code
 
-All the code is in `python-lib/dss_maintenance`. It does not depend on DSS: you can test it on your computer.
+All the code is in `python-lib/dss_project_maintenance`. It does not depend on DSS: you can test it on your computer.
 
 ```
-python-lib/dss_maintenance/
+python-lib/dss_project_maintenance/
   core/                  Shared by all macros
     macro.py               MaintenanceMacro: what each macro must provide
     runner.py              run_macro(): runs a macro, from start to end
@@ -42,7 +42,7 @@ These rules keep the macros independent. `tests/plugin/test_import_rules.py` che
 - A macro never imports another macro. If two macros need the same code, it goes into `core` or `recap`.
 - `runnable.py` imports only its own macro and the shared code. A file of `resource/` imports only the shared code.
 - Nothing in `python-lib` imports `dataiku`.
-- Imports are absolute: `from dss_maintenance.core.tags import matches`, never `from .tags import matches`.
+- Imports are absolute: `from dss_project_maintenance.core.tags import matches`, never `from .tags import matches`.
 
 **When to share code?** When a second macro needs it, not before. For example, `clear_dataset()` stays in `clear_datasets_by_tags` while no other macro clears datasets.
 
@@ -59,9 +59,9 @@ Each macro defines a subclass of `MaintenanceMacro` (in `core/macro.py`) and one
 | `describe_counts()` | The totals of the run, for the log. |
 | `build_recap_rows()` | The rows of the summary dataset. |
 | `build_recap_page()` | The description of the HTML recap (`RecapPage`), with the recap as JSON in its `summary`: for the API, the hidden block of the HTML and the `RECAP_JSON` log line. |
-| `describe_failures()` | What failed in the work, such as the datasets that could not be cleared, or `""`. A macro that only reads returns `""`. |
+| `describe_failures()` | What failed in the work, as counts, such as "1 of 3 datasets failed, 2 cleared.", or `""`. For the log and the message of a failed run. When the run goes on, `build_recap_page()` must show the failure in a banner. A macro that only reads returns `""`. |
 
-The dict that `run()` returns has at least `options`, `notices` and `blockers`. A macro that changes data also returns `simulate`. Then the runner adds the fields that every recap has: `run_id`, `macro`, `macro_label`, `project_key`, `run_by`, `started_at`, `duration`, `recap_dataset_result`, `problems` and `outcome`.
+The dict that `run()` returns has at least `options`, `notices` (a list of `Banner`) and `blockers`. A macro that changes data also returns `simulate`. Then the runner adds the fields that every recap has: `run_id`, `macro`, `macro_label`, `project_key`, `run_by`, `started_at`, `duration`, `recap_dataset_result`, `problems` and `outcome`.
 
 The smallest possible macro is in `tests/support/sample_macro.py`. The tests of the shared code use it.
 
@@ -74,11 +74,10 @@ The smallest possible macro is in `tests/support/sample_macro.py`. The tests of 
 3. **The summary dataset:** if the form asks for it, writes it. A failure is written in the recap and does not stop the run: the work is already done.
 4. **The outcome:** lists the problems, the work first (`macro.describe_failures()`), then the summary dataset. Each problem fails the run only if its option asks for it: "Continue, run ends in error" or "Raise exception" in "If an error occurs" for the work, "Fail the run" in "If the summary is not written" for the summary dataset. With "Raise exception", the macro itself stops its work at the first error. The outcome is:
    - `SUCCESS`: no problem;
-   - `WARNING`: problems, and the run goes on. DSS shows the run as a success: it cannot show a macro run as a warning. So the recap shows a yellow banner at the top;
+   - `WARNING`: problems, and the run goes on. DSS shows the run as a success: it cannot show a macro run as a warning. So the recap shows a banner at the top;
    - `FAILED`: a problem whose option asks to end the run in error.
 5. **The log:** writes the totals, one line per problem (WARNING, or ERROR when it fails the run), the outcome, then the `RECAP_JSON` line with the whole recap, then waits half a second. Without this wait, DSS 13.4.4 once lost this last line.
-6. **The HTML recap:** builds it from `macro.build_recap_page()`, with the outcome banner first.
-7. **The end:** if the outcome is `FAILED`, raises `RunFailed`. Its message gives every problem, then where the full recap is. Otherwise, returns the HTML.
+6. **The end:** if the outcome is `FAILED`, raises `RunFailed`. Its message gives every problem, then where the details are: the summary dataset if it was written, else the run log. Otherwise, builds the HTML recap from `macro.build_recap_page()` and returns it.
 
 | Error | Raised by | When |
 |---|---|---|
@@ -93,7 +92,7 @@ DSS shows the message of the error as the result of the run.
 Each macro describes its recap with a `RecapPage` (`recap/page.py`). `recap/html.py` builds the page the same way for all macros:
 
 1. the context: macro, project, who ran it, when;
-2. the banners (`Banner`) of the macro, then the notices of the run and the result of the summary dataset;
+2. the banners (`Banner`) of the macro, the notices of the run and the result of the summary dataset, sorted by tone: blue (how to read the run), red (data failed, or a real run would stop), yellow (what to check), grey (for information). A banner gives counts for what the summary dataset holds, and details only for what it cannot give, so that its length does not depend on the size of the project;
 3. the figures (`Metric`). A click on a figure with a status filters the table;
 4. the sections (`Section`), for example the options and the tags;
 5. the table (`Table`), described by its columns (`Column`) and its statuses (`Status`).

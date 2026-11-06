@@ -3,7 +3,7 @@
 Each macro fills a RecapPage. recap/html.py lays it out the same way for every macro:
 
 1. the context: macro, project, who ran it and when;
-2. the banners, then the notices of the run and the result of the recap dataset;
+2. the banners of the macro, the notices of the run and the result of the recap dataset, sorted by tone;
 3. the figures (metrics);
 4. the sections, such as the options and the tags;
 5. the table, interactive in DSS.
@@ -43,12 +43,21 @@ OUTCOME_FAILED = "FAILED"  # Something went wrong, and the form asked to fail th
 
 
 class Banner(NamedTuple):
-    """A message above the figures. The title is in bold. Items make a bulleted list, under a title."""
+    """A message above the figures: a short title in bold, then a text.
 
-    tone: str  # TONE_CAUTION (yellow), TONE_DANGER (red) or TONE_MUTED (grey).
-    title: str = ""
+    It gives counts for what the recap dataset holds, and details only for what the recap dataset cannot
+    give, such as an error of DSS or a tag of the form: a message must not grow with the project.
+    """
+
+    # TONE_PENDING (blue): how to read the run. TONE_DANGER (red): data failed, or a real run would stop.
+    # TONE_CAUTION (yellow): what to check. TONE_MUTED (grey): for information.
+    tone: str
+    title: str
     text: str = ""
-    items: tuple[str, ...] = ()
+
+    def __str__(self) -> str:
+        """Return the whole message, for the JSON recap and the log."""
+        return f"{self.title} {self.text}".strip()
 
 
 class Metric(NamedTuple):

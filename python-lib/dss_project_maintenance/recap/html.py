@@ -6,13 +6,13 @@ import re
 from html import escape
 from typing import Any, Optional
 
-from dss_maintenance.core.options import (
+from dss_project_maintenance.core.options import (
     RECAP_ERROR_CHOICES,
     RECAP_OPTION_LABELS,
     RUN_ERROR_CHOICES,
     RUN_OPTION_LABELS,
 )
-from dss_maintenance.recap.page import (
+from dss_project_maintenance.recap.page import (
     COLUMN_LONG_TEXT,
     COLUMN_NUMBER,
     COLUMN_STATUS,
@@ -23,11 +23,10 @@ from dss_maintenance.recap.page import (
     ICON_CROSS,
     ICON_MINUS,
     ICON_WARNING,
-    OUTCOME_FAILED,
-    OUTCOME_WARNING,
     TONE_CAUTION,
     TONE_DANGER,
     TONE_MUTED,
+    TONE_PENDING,
     Banner,
     Chip,
     Column,
@@ -66,9 +65,9 @@ STYLE = """
 .dtp-recap, .dtp-recap table { font-family: __FONT_FAMILY__; }
 .dtp-recap h3 { font-size: 14px; font-weight: 600; line-height: 1.3; margin: 0 0 6px; }
 .dtp-recap h3 .dtp-note { font-weight: 400; }
-.dtp-recap ul { margin: 4px 0 0; padding-left: 18px; }
 .dtp-recap .dtp-context { color: #5c6670; margin: 0 0 16px; }
 .dtp-recap .dtp-banner { background: #fff6dd; border-left: 4px solid #d99a00; margin: 0 0 12px; padding: 8px 12px; }
+.dtp-recap .dtp-banner-pending { background: #e8f0fd; border-left-color: #2f6fd8; }
 .dtp-recap .dtp-banner-danger { background: #fdecec; border-left-color: #c0272d; }
 .dtp-recap .dtp-banner-muted { background: #eef1f4; border-left-color: #5c6670; }
 .dtp-recap .dtp-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
@@ -299,11 +298,17 @@ ICON_SHAPES = {
     ICON_CIRCLE: '<circle cx="8" cy="8" r="6"/>',
 }
 
+# A recap shows its banners in this order: how to read the run, what went wrong, what to check, the rest.
 BANNER_CLASSES = {
-    TONE_CAUTION: "dtp-banner",
+    TONE_PENDING: "dtp-banner dtp-banner-pending",
     TONE_DANGER: "dtp-banner dtp-banner-danger",
+    TONE_CAUTION: "dtp-banner",
     TONE_MUTED: "dtp-banner dtp-banner-muted",
 }
+BANNER_ORDER = list(BANNER_CLASSES)
+
+# The length of an error of DSS in a message. The log has the whole error.
+DSS_ERROR_SHOWN = 200
 
 
 def text(value: Any) -> str:
@@ -324,6 +329,14 @@ def to_html_script_json(data: Any) -> str:
 def count_of(count: int, noun: str) -> str:
     """Return "1 dataset" or "2 datasets": the count with its noun, in the singular for one."""
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def dss_said(error: Any) -> str:
+    """Return an error of DSS for the end of a message, such as "DSS said: Disk full.", cut when it is long."""
+    message = " ".join(str(error).split()) or type(error).__name__
+    if len(message) > DSS_ERROR_SHOWN:
+        return f"DSS said: {message[:DSS_ERROR_SHOWN]}..."
+    return f"DSS said: {message.rstrip('.')}."
 
 
 def format_duration(seconds: float) -> str:
@@ -373,45 +386,26 @@ def build_icon(status: Status) -> str:
     )
 
 
-def build_list(items: tuple[str, ...]) -> str:
-    """Build a bulleted list of free texts."""
-    return "<ul>" + "".join(f"<li>{text(item)}</li>" for item in items) + "</ul>"
-
-
 def build_banner(banner: Banner) -> str:
     """Build a message the reader must see first."""
-    words = []
-    if banner.title:
-        words.append(f"<strong>{text(banner.title)}</strong>")
+    words = [f"<strong>{text(banner.title)}</strong>"]
     if banner.text:
         words.append(text(banner.text))
-    items = build_list(banner.items) if banner.items else ""
-    return f'<div class="{BANNER_CLASSES[banner.tone]}">{" ".join(words)}{items}</div>'
-
-
-def build_outcome_banners(recap: dict[str, Any]) -> list[Banner]:
-    """Return the banner of the outcome of the run, first in the recap: nothing when nothing went wrong."""
-    messages = tuple(problem["message"] for problem in recap["problems"])
-    if recap["outcome"] == OUTCOME_FAILED:
-        return [Banner(TONE_DANGER, "The run failed after these errors:", items=messages)]
-    if recap["outcome"] == OUTCOME_WARNING:
-        return [Banner(TONE_CAUTION, "Warning: the run went on after these errors:", items=messages)]
-    return []
+    return f'<div class="{BANNER_CLASSES[banner.tone]}">{" ".join(words)}</div>'
 
 
 def build_run_banners(recap: dict[str, Any]) -> list[Banner]:
-    """Return the banners every recap has after those of the macro: the notices, and the recap dataset written."""
-    # One banner per notice, as text: a list with no title above it would be indented.
-    banners = [Banner(TONE_CAUTION, text=notice) for notice in recap["notices"]]
+    """Return the banners every recap has, besides those of the macro: the notices, and the recap dataset result."""
+    banners = list(recap["notices"])
 
     result = recap["recap_dataset_result"]
-    if result and not result["error"]:
+    if result and result["error"]:
         banners.append(
-            Banner(
-                TONE_MUTED,
-                text=f"Summary written to dataset {result['name']}: {count_of(result['rows_written'], 'row')}.",
-            )
+            Banner(TONE_CAUTION, "Summary not written.", f"Dataset {result['name']}. {dss_said(result['error'])}")
         )
+    elif result:
+        rows = count_of(result["rows_written"], "row")
+        banners.append(Banner(TONE_MUTED, "Summary written.", f"{rows} in dataset {result['name']}."))
     return banners
 
 
@@ -559,7 +553,7 @@ def build_recap_html(recap: dict[str, Any], page: RecapPage, grid_cdn: Optional[
         f"{text(recap['macro_label'])} · Project {text(recap['project_key'])} · "
         f"Run by {text(recap['run_by'] or 'unknown user')} · Started {text(format_started_at(recap['started_at']))}"
     )
-    banners = build_outcome_banners(recap) + page.banners + build_run_banners(recap)
+    banners = sorted(page.banners + build_run_banners(recap), key=lambda banner: BANNER_ORDER.index(banner.tone))
     summary = to_html_script_json(with_outcome(page.summary, recap))
     return (
         '<meta charset="utf-8">'

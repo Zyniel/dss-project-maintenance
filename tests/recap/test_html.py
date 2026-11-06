@@ -9,8 +9,8 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.recap import page
-from dss_maintenance.recap.html import (
+from dss_project_maintenance.recap import page
+from dss_project_maintenance.recap.html import (
     AG_GRID_DEFAULT_INTEGRITY,
     AG_GRID_DEFAULT_URL,
     ICON_SHAPES,
@@ -18,11 +18,12 @@ from dss_maintenance.recap.html import (
     build_common_option_chips,
     build_recap_html,
     count_of,
+    dss_said,
     format_duration,
     read_grid_cdn,
     to_html_script_json,
 )
-from dss_maintenance.recap.page import (
+from dss_project_maintenance.recap.page import (
     ALL_STATUSES,
     COLUMN_LONG_TEXT,
     COLUMN_NUMBER,
@@ -31,6 +32,7 @@ from dss_maintenance.recap.page import (
     TONE_CAUTION,
     TONE_DANGER,
     TONE_MUTED,
+    TONE_PENDING,
     TONE_SUCCESS,
     Banner,
     Chip,
@@ -105,6 +107,19 @@ def test_format_duration() -> None:
     assert format_duration(90) == "1.5 min"
 
 
+def test_dss_said_ends_with_one_period_and_cuts_a_long_error() -> None:
+    assert dss_said("disk full") == "DSS said: disk full."
+    assert dss_said("disk full.") == "DSS said: disk full."
+    assert dss_said(" line one\n  line two ") == "DSS said: line one line two."
+    assert dss_said(TimeoutError()) == "DSS said: TimeoutError."
+    assert dss_said("x" * 500) == f"DSS said: {'x' * 200}..."
+
+
+def test_a_banner_as_text_is_its_whole_message() -> None:
+    assert str(Banner(TONE_MUTED, "Title.", "Text.")) == "Title. Text."
+    assert str(Banner(TONE_MUTED, "Title.")) == "Title."
+
+
 # Layout
 
 
@@ -118,57 +133,45 @@ def test_the_context_says_which_macro_ran_who_ran_it_and_when() -> None:
     assert "Run by unknown user" in html_of(make_page(), run_by="")
 
 
-def test_banners_by_tone_then_the_notices_of_the_run() -> None:
+def test_banners_are_sorted_by_tone_whoever_adds_them() -> None:
     banners = [
-        Banner(TONE_CAUTION, "Simulation: nothing was done.", 'Uncheck "Simulate".'),
-        Banner(TONE_DANGER, "A real run would stop:", items=("reason 1", "reason 2")),
+        Banner(TONE_CAUTION, "Check this.", "Twice."),
+        Banner(TONE_DANGER, "It failed."),
+        Banner(TONE_PENDING, "Simulation.", 'Uncheck "Simulate".'),
     ]
-
-    html = html_of(make_page(banners=banners), notices=["Sharing not checked.", "Recipes not checked."])
-
-    assert '<div class="dtp-banner"><strong>Simulation: nothing was done.</strong> Uncheck "Simulate".</div>' in html
-    assert (
-        '<div class="dtp-banner dtp-banner-danger"><strong>A real run would stop:</strong>'
-        "<ul><li>reason 1</li><li>reason 2</li></ul></div>"
-    ) in html
-    # One banner per notice, as text: a list with no title above it would be indented.
-    assert (
-        '<div class="dtp-banner">Sharing not checked.</div><div class="dtp-banner">Recipes not checked.</div>' in html
-    )
-    assert html.index("A real run would stop") < html.index("Sharing not checked.")
-
-
-def test_the_recap_dataset_written_is_shown() -> None:
+    notices = [Banner(TONE_MUTED, "For information."), Banner(TONE_CAUTION, "Check that.")]
     written = {"name": "recap", "rows_written": 1, "error": ""}
-    assert '<div class="dtp-banner dtp-banner-muted">Summary written to dataset recap: 1 row.</div>' in html_of(
-        make_page(), recap_dataset_result=written
-    )
 
-    failed = {"name": "recap", "rows_written": 0, "error": "ValueError"}
-    assert "Recap written" not in html_of(make_page(), recap_dataset_result=failed)  # The outcome banner says it.
+    html = html_of(make_page(banners=banners), notices=notices, recap_dataset_result=written)
 
-
-def test_the_outcome_banner_comes_first_and_lists_the_problems() -> None:
-    problems = [{"message": "Failed: <d2>.", "fail": False}]
-    banners = [Banner(TONE_CAUTION, "Simulation: nothing was done.")]
-
-    html = html_of(make_page(banners=banners), problems=problems, outcome="WARNING")
-
-    warning = (
-        '<div class="dtp-banner"><strong>Warning: the run went on after these errors:</strong>'
-        "<ul><li>Failed: &lt;d2&gt;.</li></ul></div>"
-    )
-    assert warning in html
-    assert html.index(warning) < html.index("Simulation: nothing was done.")
-
-    html = html_of(make_page(), problems=problems, outcome="FAILED")
-    assert '<div class="dtp-banner dtp-banner-danger"><strong>The run failed after these errors:</strong>' in html
+    assert '<div class="dtp-banner dtp-banner-pending"><strong>Simulation.</strong> Uncheck "Simulate".</div>' in html
+    assert '<div class="dtp-banner dtp-banner-danger"><strong>It failed.</strong></div>' in html
+    assert '<div class="dtp-banner"><strong>Check this.</strong> Twice.</div>' in html
+    assert '<div class="dtp-banner dtp-banner-muted"><strong>For information.</strong></div>' in html
+    titles = ["Simulation.", "It failed.", "Check this.", "Check that.", "For information.", "Summary written."]
+    positions = [html.index(title) for title in titles]
+    assert positions == sorted(positions)
 
 
-def test_no_outcome_banner_when_nothing_went_wrong() -> None:
+def test_the_recap_dataset_result_is_shown() -> None:
+    written = {"name": "recap", "rows_written": 1, "error": ""}
+    assert (
+        '<div class="dtp-banner dtp-banner-muted"><strong>Summary written.</strong> 1 row in dataset recap.</div>'
+    ) in html_of(make_page(), recap_dataset_result=written)
+
+    failed = {"name": "recap", "rows_written": 0, "error": "ValueError: <bad>."}
+    html = html_of(make_page(), recap_dataset_result=failed)
+    assert (
+        '<div class="dtp-banner"><strong>Summary not written.</strong> '
+        "Dataset recap. DSS said: ValueError: &lt;bad&gt;.</div>"
+    ) in html
+    assert "Summary written." not in html
+
+
+def test_no_banner_when_there_is_nothing_to_say() -> None:
     html = html_of(make_page())
 
-    assert "the run went on" not in html and "The run failed" not in html
+    assert "dtp-banner" not in html.split("</style>")[1]
 
 
 def test_metrics_with_their_tone_and_status_filter() -> None:
@@ -285,13 +288,13 @@ def test_free_text_is_escaped_and_angularjs_is_kept_out() -> None:
     attack = "<script>alert(1)</script>{{constructor}}"
     page = make_page(
         [make_row(attack, detail=attack, tags=[attack], type=attack)],
-        banners=[Banner(TONE_MUTED, attack, attack, (attack,))],
+        banners=[Banner(TONE_MUTED, attack, attack)],
         metrics=[Metric(attack, attack)],
         sections=[Section(attack, attack, (Chip(attack),), attack)],
         summary={"name": attack},
     )
 
-    html = html_of(page, project_key=attack, run_by=attack, notices=[attack])
+    html = html_of(page, project_key=attack, run_by=attack, notices=[Banner(TONE_CAUTION, attack, attack)])
 
     assert "<script>alert(1)" not in html
     assert "&lt;script&gt;" in html

@@ -7,7 +7,7 @@ from typing import Any
 
 import dataiku
 
-from dss_maintenance.core.tags import list_category_tag_choices, read_listed_tag_categories
+from dss_project_maintenance.core.tags import list_category_tag_choices, read_listed_tag_categories
 
 
 def do(payload: dict[str, Any], config: dict[str, Any], plugin_config: dict[str, Any], inputs: Any) -> dict[str, Any]:

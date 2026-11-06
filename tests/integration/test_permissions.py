@@ -45,7 +45,7 @@ def test_an_editor_cannot_skip_shared_datasets(scratch_project: Any, editor: Any
     add_built_dataset(scratch_project, "sales", ["tmp"], connection)
     project = give_access(scratch_project, editor, write=True)
 
-    with pytest.raises(dss_error(), match="Shared datasets cannot be skipped"):
+    with pytest.raises(dss_error(), match="Sharing not checked"):
         run_macro(project, CLEAR, {"included_tags": ["tmp"], "simulate": False, "purge_shared": False})
 
     assert count_rows(scratch_project, "sales") == ROW_COUNT

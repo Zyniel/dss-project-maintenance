@@ -7,23 +7,23 @@ any reason to stop is found while nothing is cleared yet. Step 2 clears the data
 import logging
 import time
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
-from dss_maintenance.core.macro import RunStopped
-from dss_maintenance.core.options import (
+from dss_project_maintenance.core.macro import RunStopped
+from dss_project_maintenance.core.options import (
     ON_ERROR_STOP,
     option_unchecked,
     read_checkbox,
     read_recap_options,
     read_run_options,
 )
-from dss_maintenance.core.project import (
+from dss_project_maintenance.core.project import (
     list_project_datasets,
     name_projects,
     read_datasets_without_recipe,
     read_shared_datasets,
 )
-from dss_maintenance.core.tags import (
+from dss_project_maintenance.core.tags import (
     SCOPE_ALL_DATASETS,
     SCOPE_CHOICES,
     SCOPE_LABEL,
@@ -36,6 +36,8 @@ from dss_maintenance.core.tags import (
     select_datasets,
     tags_in_both,
 )
+from dss_project_maintenance.recap.html import count_of, dss_said
+from dss_project_maintenance.recap.page import TONE_CAUTION, TONE_MUTED, Banner
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,9 @@ SKIP_PARTITIONED = "PARTITIONED"
 SKIP_WITHOUT_RECIPE = "WITHOUT_RECIPE"
 SKIP_STOPPED = "STOPPED"  # Not tried: "If an error occurs" is "Raise exception", and a clear failed before.
 
+# On each dataset to clear when the sharing cannot be read. A notice says it once in the recap.
+WARNING_SHARING_NOT_CHECKED = "Sharing not checked: other projects may use it"
+
 # Default value and label of the options of this macro, as in its form. A test checks that the form
 # agrees. The options of the "Run" and "Summary" sections are in core/options.py.
 OPTION_DEFAULTS = {
@@ -80,6 +85,17 @@ OPTION_LABELS = {
     "purge_partitioned": "Clear partitioned datasets",
     "purge_without_recipe": "Clear datasets with no recipe",
 }
+
+
+class Blocker(NamedTuple):
+    """Why a real run stops before clearing anything. A simulation shows it."""
+
+    check: str  # What could not be checked, in lower case, such as "sharing".
+    text: str  # What to do, then the error of DSS.
+
+    def __str__(self) -> str:
+        """Return the whole message, for the JSON recap, the log and the message of the stopped run."""
+        return f"{self.check.capitalize()} not checked. {self.text}"
 
 
 def read_options(config: dict[str, Any], project_key: str) -> dict[str, Any]:
@@ -161,7 +177,7 @@ def decide(
     if is_shared:
         row["warnings"].append(f"Shared with {name_projects(shared_with)}: the projects using it can break")
     if is_shared is None:
-        row["warnings"].append("Sharing not checked: other projects may use it")
+        row["warnings"].append(WARNING_SHARING_NOT_CHECKED)
     if dimensions:
         row["warnings"].append(f"All partitions are cleared (partitioned by {', '.join(dimensions)})")
     if built_by_recipe is False:
@@ -231,6 +247,65 @@ def describe_row(row: dict[str, Any]) -> str:
     return text
 
 
+def tags_are(count: int) -> str:
+    """Return "1 tag is" or "2 tags are", to start a sentence."""
+    return f"{count_of(count, 'tag')} {'is' if count == 1 else 'are'}"
+
+
+def build_tag_notices(
+    config: dict[str, Any],
+    selection: TagSelection,
+    included_tag_counts: dict[str, int],
+    excluded_tag_counts: dict[str, int],
+    selected_count: int,
+) -> list[Banner]:
+    """Return the notices about the tags of the form. They name the tags: no row of the recap dataset can."""
+    notices = []
+
+    ignored = ignored_included_tags(config, selection)
+    if ignored:
+        all_datasets = SCOPE_CHOICES[SCOPE_ALL_DATASETS]
+        notices.append(
+            Banner(
+                TONE_MUTED,
+                f"{count_of(len(ignored), 'included tag')} ignored.",
+                f'"{SCOPE_LABEL}" is "{all_datasets}": {", ".join(ignored)}.',
+            )
+        )
+
+    in_both = tags_in_both(selection)
+    if in_both:
+        they_count = "It counts" if len(in_both) == 1 else "They count"
+        notices.append(
+            Banner(
+                TONE_CAUTION,
+                f"{tags_are(len(in_both))} both included and excluded.",
+                f"{they_count} as excluded: {', '.join(in_both)}.",
+            )
+        )
+
+    included_on_no_dataset = [tag for tag, count in included_tag_counts.items() if not count]
+    excluded_on_no_dataset = [tag for tag, count in excluded_tag_counts.items() if not count]
+    if not selected_count:
+        if included_on_no_dataset:
+            reason = f"Included tags on no dataset: {', '.join(included_on_no_dataset)}."
+        elif selection.included_scope == SCOPE_ALL_DATASETS:
+            reason = "This project has no dataset."
+        else:
+            reason = "No dataset has all the included tags."
+        notices.append(Banner(TONE_CAUTION, "No dataset selected.", reason))
+    elif included_on_no_dataset or excluded_on_no_dataset:
+        # A typo in an excluded tag protects nothing: the datasets it should keep are cleared.
+        tag_lists = []
+        if included_on_no_dataset:
+            tag_lists.append(f"Included: {', '.join(included_on_no_dataset)}.")
+        if excluded_on_no_dataset:
+            tag_lists.append(f"Excluded: {', '.join(excluded_on_no_dataset)}.")
+        count = len(included_on_no_dataset) + len(excluded_on_no_dataset)
+        notices.append(Banner(TONE_CAUTION, f"{tags_are(count)} on no dataset.", " ".join(tag_lists)))
+    return notices
+
+
 def run_cleanup(
     project: Any, project_key: str, config: dict[str, Any], progress_callback: Callable[[int], None]
 ) -> dict[str, Any]:
@@ -257,49 +332,34 @@ def run_cleanup(
 
     # Step 1: decide what to do with each dataset, before clearing anything.
     project_datasets = list_project_datasets(project, project_key)
-    notices: list[str] = []  # What the reader must know. The run goes on.
-    blockers: list[str] = []  # Why a real run stops before clearing anything. A simulation shows them.
+    notices: list[Banner] = []  # What the reader must know. The run goes on.
+    blockers: list[Blocker] = []  # Why a real run stops before clearing anything. A simulation shows them.
 
     shared_datasets: Optional[dict[str, list[str]]] = None
     try:
         shared_datasets = read_shared_datasets(project)
     except Exception as error:
-        problem = (
-            f"DSS did not give the datasets shared with other projects ({error}). "
-            "Only project administrators can read them."
-        )
+        logger.warning("Could not read the datasets shared with other projects: %s", error)
         if options["purge_shared"]:
-            notices.append(f"Sharing not checked. {problem} Shared datasets are cleared like the others.")
+            text = f"Shared datasets are cleared too. {dss_said(error)}"
+            notices.append(Banner(TONE_CAUTION, "Sharing not checked.", text))
         else:
-            blockers.append(
-                f"Shared datasets cannot be skipped. {problem} "
-                f"Ask a project administrator to run the macro, or check '{OPTION_LABELS['purge_shared']}'."
-            )
+            label = OPTION_LABELS["purge_shared"]
+            action = f'Check "{label}", or ask a project administrator to run the macro.'
+            blockers.append(Blocker("sharing", f"{action} {dss_said(error)}"))
 
     datasets_without_recipe: Optional[set[str]] = None
     try:
         datasets_without_recipe = read_datasets_without_recipe(project)
     except Exception as error:
-        problem = f"Reading the Flow failed ({error})."
+        logger.warning("Could not read the Flow: %s", error)
         if options["purge_without_recipe"]:
-            notices.append(f"Recipes not checked. {problem} Datasets no recipe builds are cleared like the others.")
+            text = f"Datasets with no recipe are cleared too. {dss_said(error)}"
+            notices.append(Banner(TONE_CAUTION, "Recipes not checked.", text))
         else:
-            blockers.append(
-                f"Datasets no recipe builds cannot be skipped. {problem} "
-                f"Run the macro again, or check '{OPTION_LABELS['purge_without_recipe']}'."
-            )
-
-    ignored = ignored_included_tags(config, selection)
-    if ignored:
-        all_datasets = SCOPE_CHOICES[SCOPE_ALL_DATASETS]
-        notices.append(f"Included tags ignored, since '{SCOPE_LABEL}' is '{all_datasets}': {', '.join(ignored)}.")
-
-    in_both = tags_in_both(selection)
-    if in_both:
-        notices.append(
-            f"Tags both included and excluded: {', '.join(in_both)}. The excluded tags still apply: "
-            "check the two lists."
-        )
+            label = OPTION_LABELS["purge_without_recipe"]
+            action = f'Check "{label}", or run the macro again.'
+            blockers.append(Blocker("recipes", f"{action} {dss_said(error)}"))
 
     included_tag_counts = {tag: count_datasets_with_tag(project_datasets, tag) for tag in selection.included_tags}
     excluded_tag_counts = {tag: count_datasets_with_tag(project_datasets, tag) for tag in selection.excluded_tags}
@@ -309,16 +369,17 @@ def run_cleanup(
         for tagged in select_datasets(project_datasets, selection)
     ]
     rows.sort(key=lambda row: row["name"])
+    notices += build_tag_notices(config, selection, included_tag_counts, excluded_tag_counts, len(rows))
 
     for row in rows:
         logger.info("Decision for %s", describe_row(row))
     for notice in notices:
-        logger.warning(notice)
+        logger.warning("%s", notice)
     for blocker in blockers:
         logger.warning("A real run stops here: %s", blocker)
 
     if blockers and not simulate:
-        raise RunStopped("Nothing was cleared. " + " ".join(blockers))
+        raise RunStopped("Nothing was cleared. " + " ".join(str(blocker) for blocker in blockers))
 
     # Step 2: clear the datasets, one after the other. A simulation only marks them. With "Raise
     # exception", the first failure stops the clearing: the datasets after it are not tried, and the

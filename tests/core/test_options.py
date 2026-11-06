@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.options import (
+from dss_project_maintenance.core.options import (
     RECAP_ERROR_CHOICES,
     RECAP_OPTION_DEFAULTS,
     RUN_ERROR_CHOICES,

@@ -2,7 +2,7 @@
 
 import pytest
 
-from dss_maintenance.recap.dataset import format_flag, write_recap_dataset
+from dss_project_maintenance.recap.dataset import format_flag, write_recap_dataset
 from support.fakes import FakeRecapDataset
 
 COLUMNS = ["run_id", "dataset", "status"]
