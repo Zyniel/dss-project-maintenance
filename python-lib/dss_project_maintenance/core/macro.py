@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-from dss_maintenance.recap.page import RecapPage
+from dss_project_maintenance.recap.page import RecapPage
 
 
 class RunStopped(Exception):
@@ -18,7 +18,7 @@ class MaintenanceMacro(ABC):
 
     - "options": the options of the form, including those of read_recap_options(), and of
       read_run_options() for a macro that changes data;
-    - "notices": what the reader must know, the run went on;
+    - "notices": what the reader must know, the run went on, as a list of Banner;
     - "blockers": why a real run would stop. Only a simulation returns with blockers.
 
     A macro that changes data also returns "simulate": True when the run changed nothing. A macro
@@ -63,8 +63,9 @@ class MaintenanceMacro(ABC):
 
     @abstractmethod
     def describe_failures(self, recap: dict[str, Any]) -> str:
-        """Return what failed in the work, such as the datasets that could not be cleared, or "".
+        """Return what failed in the work as counts, such as "1 of 3 datasets failed, 2 cleared.", or "".
 
-        The runner shows it as a warning, or fails the run with it when "If an error occurs" is
-        "Fail the run". The runner handles the recap dataset itself. A macro that only reads returns "".
+        The runner logs it, and fails the run with it when "If an error occurs" is "Fail the run". When
+        the run goes on, DSS shows a success, so build_recap_page() must show the failure in a banner.
+        The runner handles the recap dataset itself. A macro that only reads returns "".
         """

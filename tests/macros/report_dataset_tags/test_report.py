@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.macros.report_dataset_tags import MACRO
-from dss_maintenance.macros.report_dataset_tags.report import (
+from dss_project_maintenance.macros.report_dataset_tags import MACRO
+from dss_project_maintenance.macros.report_dataset_tags.report import (
     OPTION_DEFAULTS,
     STATUS_UNKNOWN,
     STATUS_UNUSED,
@@ -96,8 +96,10 @@ def test_without_admin_rights_the_categories_are_not_checked_and_the_report_says
     assert tag_rows(recap)["Stage:Rwa"]["status"] == STATUS_USED
     assert recap["categories_checked"] is False
     assert recap["known_categories"] is None
-    assert recap["notices"][0].startswith("Category tags not checked: DSS did not give the tag categories")
-    assert "Only DSS administrators can read them." in recap["notices"][0]
+    assert [str(notice) for notice in recap["notices"]] == [
+        "Category tags not checked. Only DSS administrators can read the categories. "
+        "DSS said: Action forbidden, you are not admin."
+    ]
 
 
 # Unused tags
@@ -130,7 +132,9 @@ def test_an_unreadable_project_tag_list_is_a_notice() -> None:
     recap, _ = run(MACRO, project, {})
 
     assert [row["tag"] for row in recap["tags"]] == ["tmp"]
-    assert recap["notices"] == ["Unused tags not listed: reading the project tag list failed (timeout)."]
+    assert [str(notice) for notice in recap["notices"]] == [
+        "Unused tags not listed. The project tag list could not be read. DSS said: timeout."
+    ]
 
 
 # Options

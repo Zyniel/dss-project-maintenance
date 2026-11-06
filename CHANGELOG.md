@@ -2,6 +2,29 @@
 
 The changes of each version of the plugin, the most recent first.
 
+## 2.0.4-beta - 2026-11-06
+
+Pre-release. The changes since 2.0.0-beta.
+
+### Clear Datasets by Tags
+
+- New banner: how many datasets to clear carry a risk (shared, partitioned, with no recipe). In a simulation, the top of the recap now says it before you decide.
+- New banner: no dataset selected, or tags on no dataset, with these tags. An excluded tag on no dataset said nothing before: with a typo in it, the datasets it should protect are cleared.
+- The count of a run stopped by "Raise exception" is right: "1 of 250 datasets failed, 249 not tried", not "1 of 1 dataset".
+- The Detail column no longer repeats "Sharing not checked" on each dataset: a banner says it once. The summary dataset and the JSON recap keep it.
+
+### Every macro
+
+- Every message at the top of the recap has the same format: a short title in bold, then what it means and what to do. A message gives counts for what the summary dataset holds, and details only for what it cannot give, such as an error of DSS or a tag of the form. So failures no longer list dataset names, and the length of a message does not depend on the number of datasets. The text of the `notices`, `blockers` and `problems` fields of the JSON recap changes with them.
+- Banners are always in the same order, by colour: blue (a simulation), red (data failed, or a real run would stop), yellow (what to check), grey (for information). Failed datasets are red even when the run goes on.
+- The message of a failed run says where the details are: the summary dataset if it was written, else the run log.
+- An error of DSS is cut after 200 characters in a message. The log has the whole error.
+
+### For developers
+
+- The package in `python-lib` is renamed from `dss_maintenance` to `dss_project_maintenance`. Imports use the new name.
+- `notices` is now a list of `Banner`, which has no `items` any more. A macro shows its own failures in a banner: see [adding a macro](docs/adding-a-macro.md).
+
 ## 2.0.0-beta - 2026-11-06
 
 Pre-release.

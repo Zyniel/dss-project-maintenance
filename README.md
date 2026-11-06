@@ -5,7 +5,7 @@ A Dataiku DSS plugin with macros to maintain projects. A macro that changes data
 | | |
 |---|---|
 | Plugin id | `project-maintenance` |
-| Version | 2.0.0-beta, a pre-release (see the [CHANGELOG](CHANGELOG.md)) |
+| Version | 2.0.4-beta, a pre-release (see the [CHANGELOG](CHANGELOG.md)) |
 | Works with | DSS 13 and later, in the built-in Python 3.9 environment, with no code environment |
 | License | [The Unlicense](LICENSE): public domain, free to use for any purpose |
 
@@ -41,21 +41,21 @@ Inside DSS, the recap always uses the AG Grid of DSS, never the two AG Grid sett
 ## Repository layout
 
 ```
-plugin.json                      Id, version and name of the plugin
-python-lib/dss_maintenance/      All the code, testable without DSS
-  core/                            Shared: run a macro, read the form, read a project, tags
-  recap/                           Shared: the HTML recap and the summary dataset
-  macros/                          The code of each macro, one folder per macro
+plugin.json                          Id, version and name of the plugin
+python-lib/dss_project_maintenance/  All the code, testable without DSS
+  core/                                Shared: run a macro, read the form, read a project, tags
+  recap/                               Shared: the HTML recap and the summary dataset
+  macros/                              The code of each macro, one folder per macro
     clear_datasets_by_tags/
     report_dataset_tags/
-python-runnables/                One folder per macro: form (runnable.json) and entry point (runnable.py)
+python-runnables/                    One folder per macro: form (runnable.json) and entry point (runnable.py)
   clear-datasets-by-tags/
   report-dataset-tags/
-resource/                        Files DSS calls to fill the lists of the forms
-tests/                           pytest tests, in the same layout as python-lib
-docs/                            Documentation
-build_plugin_zip.py              Builds the zip to install in DSS
-pyproject.toml, uv.lock          Development tools and their versions
+resource/                            Files DSS calls to fill the lists of the forms
+tests/                               pytest tests, in the same layout as python-lib
+docs/                                Documentation
+build_plugin_zip.py                  Builds the zip to install in DSS
+pyproject.toml, uv.lock              Development tools and their versions
 ```
 
 ## Documentation

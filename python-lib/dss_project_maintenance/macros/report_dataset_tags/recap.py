@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dss_maintenance.macros.report_dataset_tags.report import (
+from dss_project_maintenance.macros.report_dataset_tags.report import (
     OPTION_LABELS,
     STATUS_LABELS,
     STATUS_UNKNOWN,
@@ -10,8 +10,8 @@ from dss_maintenance.macros.report_dataset_tags.report import (
     STATUS_UNUSED,
     STATUS_USED,
 )
-from dss_maintenance.recap.html import build_common_option_chips, count_of, format_duration, yes_no
-from dss_maintenance.recap.page import (
+from dss_project_maintenance.recap.html import build_common_option_chips, count_of, format_duration, yes_no
+from dss_project_maintenance.recap.page import (
     ALL_STATUSES,
     COLUMN_LONG_TEXT,
     COLUMN_NUMBER,
@@ -113,7 +113,7 @@ def build_summary(recap: dict[str, Any]) -> dict[str, Any]:
         "started_at": recap["started_at"],
         "options": recap["options"],
         "categories_checked": recap["categories_checked"],
-        "notices": recap["notices"],
+        "notices": [str(notice) for notice in recap["notices"]],
         "counts": count(recap),
         "duration_seconds": round(recap["duration"], 3),
         "recap_dataset": recap["recap_dataset_result"],

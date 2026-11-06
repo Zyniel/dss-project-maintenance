@@ -3,16 +3,16 @@
 from collections.abc import Callable
 from typing import Any
 
-from dss_maintenance.core.macro import MaintenanceMacro
-from dss_maintenance.macros.clear_datasets_by_tags.cleanup import run_cleanup
-from dss_maintenance.macros.clear_datasets_by_tags.recap import (
+from dss_project_maintenance.core.macro import MaintenanceMacro
+from dss_project_maintenance.macros.clear_datasets_by_tags.cleanup import run_cleanup
+from dss_project_maintenance.macros.clear_datasets_by_tags.recap import (
     RECAP_COLUMNS,
     build_recap_page,
     build_recap_rows,
     describe_counts,
     describe_failures,
 )
-from dss_maintenance.recap.page import RecapPage
+from dss_project_maintenance.recap.page import RecapPage
 
 
 class ClearDatasetsByTagsMacro(MaintenanceMacro):

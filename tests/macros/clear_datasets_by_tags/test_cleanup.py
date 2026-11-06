@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.macro import RunStopped
-from dss_maintenance.macros.clear_datasets_by_tags import MACRO
-from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
+from dss_project_maintenance.core.macro import RunStopped
+from dss_project_maintenance.macros.clear_datasets_by_tags import MACRO
+from dss_project_maintenance.macros.clear_datasets_by_tags.cleanup import (
     SKIP_EXTERNAL,
     SKIP_PARTITIONED,
     SKIP_RECAP_DATASET,
@@ -20,11 +20,17 @@ from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
     STATUS_SKIPPED,
     STATUS_WOULD_BE_CLEARED,
 )
+from dss_project_maintenance.recap.page import TONE_MUTED
 from support.fakes import FakeProject, make_dataset
 from support.runs import row_of, run, status_of
 
 REAL_RUN = {"simulate": False}
 ALL_DATASETS = {"included_scope": "ALL_DATASETS"}
+
+
+def notices_of(recap: dict[str, Any]) -> list[str]:
+    return [str(notice) for notice in recap["notices"]]
+
 
 # Selecting the datasets
 
@@ -128,7 +134,8 @@ def test_all_datasets_ignores_the_included_tags_with_a_notice() -> None:
     assert project.cleared == ["other", "tmp"]
     assert (recap["included_scope"], recap["included_tags"], recap["included_tag_counts"]) == ("ALL_DATASETS", [], {})
     assert row_of(recap, "tmp")["included_tags"] == []
-    assert recap["notices"] == ["Included tags ignored, since 'Include' is 'All datasets': tmp, Stage:Raw."]
+    assert notices_of(recap) == ['2 included tags ignored. "Include" is "All datasets": tmp, Stage:Raw.']
+    assert recap["notices"][0].tone == TONE_MUTED
 
 
 def test_an_excluded_dataset_is_never_cleared_even_when_included() -> None:
@@ -173,9 +180,48 @@ def test_a_tag_in_both_lists_is_excluded_and_reported() -> None:
 
     assert project.cleared == []
     assert status_of(recap, "input") == STATUS_EXCLUDED
-    assert recap["notices"] == [
-        "Tags both included and excluded: Stage:Input. The excluded tags still apply: check the two lists."
-    ]
+    assert notices_of(recap) == ["1 tag is both included and excluded. It counts as excluded: Stage:Input."]
+
+
+def test_several_tags_in_both_lists_are_named() -> None:
+    project = FakeProject([make_dataset("ds", ["a", "b"])])
+
+    recap, _ = run(MACRO, project, {"included_tags": ["a", "b"], "excluded_tags": ["a", "b"]})
+
+    assert notices_of(recap) == ["2 tags are both included and excluded. They count as excluded: a, b."]
+
+
+# Tags on no dataset
+
+
+def test_tags_on_no_dataset_are_named_since_the_summary_dataset_has_no_row_for_them() -> None:
+    project = FakeProject([make_dataset("ds", ["a"])])
+
+    recap, _ = run(MACRO, project, {"included_tags": ["a", "typo"], "excluded_tags": ["kep"]})
+
+    assert notices_of(recap) == ["2 tags are on no dataset. Included: typo. Excluded: kep."]
+
+
+def test_an_included_tag_on_no_dataset_is_named_when_nothing_is_selected() -> None:
+    project = FakeProject([make_dataset("ds", ["a"])])
+
+    recap, _ = run(MACRO, project, {"included_tags": ["tpm"], "excluded_tags": ["kep"], **REAL_RUN})
+
+    assert notices_of(recap) == ["No dataset selected. Included tags on no dataset: tpm."]
+
+
+def test_no_dataset_with_all_the_included_tags_selects_nothing_with_a_notice() -> None:
+    project = FakeProject([make_dataset("one", ["a"]), make_dataset("other", ["b"])])
+
+    recap, _ = run(MACRO, project, {"included_tags": ["a", "b"], "included_match": "ALL"})
+
+    assert notices_of(recap) == ["No dataset selected. No dataset has all the included tags."]
+
+
+def test_all_datasets_in_an_empty_project_selects_nothing_with_a_notice() -> None:
+    recap, _ = run(MACRO, FakeProject([]), {**ALL_DATASETS})
+
+    assert notices_of(recap) == ["No dataset selected. This project has no dataset."]
 
 
 # Datasets that are never cleared
@@ -271,7 +317,13 @@ def test_sharing_is_shown_in_a_simulation() -> None:
 def test_a_real_run_of_an_editor_that_skips_shared_datasets_stops_since_they_cannot_be_found() -> None:
     project = FakeProject([make_dataset("ds", ["a"])], is_admin=False)
 
-    with pytest.raises(RunStopped, match="Nothing was cleared. Shared datasets cannot be skipped"):
+    with pytest.raises(
+        RunStopped,
+        match=(
+            r'^Nothing was cleared\. Sharing not checked\. Check "Clear shared datasets", or ask a project '
+            r"administrator to run the macro\. DSS said: Action forbidden, you are not admin of this project\.$"
+        ),
+    ):
         run(MACRO, project, {"included_tags": ["a"], "purge_shared": False, **REAL_RUN})
 
     assert project.cleared == []
@@ -286,9 +338,10 @@ def test_editors_who_check_the_option_clear_and_are_told_sharing_was_not_checked
     assert recap["sharing_checked"] is False
     assert row_of(recap, "shared")["is_shared"] is None
     assert row_of(recap, "shared")["warnings"] == ["Sharing not checked: other projects may use it"]
-    assert len(recap["notices"]) == 1
-    assert recap["notices"][0].startswith("Sharing not checked.")
-    assert "not admin" in recap["notices"][0]
+    assert notices_of(recap) == [
+        "Sharing not checked. Shared datasets are cleared too. "
+        "DSS said: Action forbidden, you are not admin of this project."
+    ]
 
 
 def test_a_simulation_shows_why_a_real_run_would_stop() -> None:
@@ -296,8 +349,21 @@ def test_a_simulation_shows_why_a_real_run_would_stop() -> None:
 
     recap, _ = run(MACRO, project, {"included_tags": ["a"], "purge_shared": False})
 
-    assert recap["blockers"][0].startswith("Shared datasets cannot be skipped.")
+    assert str(recap["blockers"][0]).startswith('Sharing not checked. Check "Clear shared datasets"')
     assert status_of(recap, "ds") == STATUS_WOULD_BE_CLEARED
+
+
+def test_a_long_error_is_cut_in_the_notice_and_whole_in_the_log(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO)
+    error = "x" * 500
+    project = FakeProject([make_dataset("ds", ["a"])], flow_error=RuntimeError(error))
+
+    recap, _ = run(MACRO, project, {"included_tags": ["a"], "purge_without_recipe": True})
+
+    assert notices_of(recap) == [
+        f"Recipes not checked. Datasets with no recipe are cleared too. DSS said: {'x' * 200}..."
+    ]
+    assert f"Could not read the Flow: {error}" in caplog.messages
 
 
 # Partitioned datasets
@@ -355,7 +421,13 @@ def test_checked_datasets_no_recipe_builds_are_cleared_with_a_warning() -> None:
 def test_an_unreadable_flow_stops_a_real_run_by_default() -> None:
     project = FakeProject([make_dataset("ds", ["a"])], flow_error=RuntimeError("timeout"))
 
-    with pytest.raises(RunStopped, match="Datasets no recipe builds cannot be skipped"):
+    with pytest.raises(
+        RunStopped,
+        match=(
+            r'^Nothing was cleared\. Recipes not checked\. Check "Clear datasets with no recipe", or run the macro '
+            r"again\. DSS said: timeout\.$"
+        ),
+    ):
         run(MACRO, project, {"included_tags": ["a"], **REAL_RUN})
 
     assert project.cleared == []
@@ -368,22 +440,21 @@ def test_an_unreadable_flow_is_a_notice_when_the_option_is_checked() -> None:
 
     assert project.cleared == ["ds"]
     assert recap["recipes_checked"] is False
-    assert recap["notices"] == [
-        "Recipes not checked. Reading the Flow failed (timeout). Datasets no recipe builds are cleared like the others."
-    ]
+    assert notices_of(recap) == ["Recipes not checked. Datasets with no recipe are cleared too. DSS said: timeout."]
 
 
 # Excluded tags
 
 
-def test_an_excluded_tag_on_no_dataset_neither_stops_nor_warns() -> None:
+def test_an_excluded_tag_on_no_dataset_does_not_stop_the_run_and_is_named() -> None:
     project = FakeProject([make_dataset("gold", ["Stage:Gold"]), make_dataset("other", [])])
 
     recap, _ = run(MACRO, project, {"excluded_tags": ["NoInList", "Stage:Gold"], **ALL_DATASETS, **REAL_RUN})
 
     assert project.cleared == ["other"]
     assert recap["excluded_tag_counts"] == {"NoInList": 0, "Stage:Gold": 1}
-    assert (recap["blockers"], recap["notices"]) == ([], [])
+    assert recap["blockers"] == []
+    assert notices_of(recap) == ["1 tag is on no dataset. Excluded: NoInList."]
 
 
 def test_an_excluded_tag_counts_every_dataset_carrying_it_not_only_the_selected_ones() -> None:

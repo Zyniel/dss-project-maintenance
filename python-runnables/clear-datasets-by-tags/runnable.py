@@ -7,8 +7,8 @@ from typing import Any
 import dataiku
 from dataiku.runnables import Runnable
 
-from dss_maintenance.core.runner import run_macro
-from dss_maintenance.macros.clear_datasets_by_tags import MACRO
+from dss_project_maintenance.core.runner import run_macro
+from dss_project_maintenance.macros.clear_datasets_by_tags import MACRO
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logging.getLogger().setLevel(logging.INFO)  # basicConfig does nothing if DSS already set up logging.

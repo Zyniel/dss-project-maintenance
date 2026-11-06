@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.tags import (
+from dss_project_maintenance.core.tags import (
     MATCH_ALL,
     MATCH_ANY,
     SCOPE_ALL_DATASETS,

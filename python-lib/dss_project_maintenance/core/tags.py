@@ -17,7 +17,7 @@ none is excluded.
 
 from typing import Any, NamedTuple, Optional
 
-from dss_maintenance.core.project import list_project_datasets
+from dss_project_maintenance.core.project import list_project_datasets
 
 # How a list of tags matches a dataset: when it carries any of them, or all of them.
 MATCH_ANY = "ANY"

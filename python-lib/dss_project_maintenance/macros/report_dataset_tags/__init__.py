@@ -5,6 +5,6 @@
 - macro.py: the MaintenanceMacro that ties them together for the shared runner.
 """
 
-from dss_maintenance.macros.report_dataset_tags.macro import MACRO
+from dss_project_maintenance.macros.report_dataset_tags.macro import MACRO
 
 __all__ = ["MACRO"]

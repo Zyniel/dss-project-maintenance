@@ -4,9 +4,9 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.runner import RunFailed, run_macro
-from dss_maintenance.macros.report_dataset_tags import MACRO
-from dss_maintenance.macros.report_dataset_tags.recap import RECAP_COLUMNS
+from dss_project_maintenance.core.runner import RunFailed, run_macro
+from dss_project_maintenance.macros.report_dataset_tags import MACRO
+from dss_project_maintenance.macros.report_dataset_tags.recap import RECAP_COLUMNS
 from support.dataiku_stub import install_fake_dataiku, load_runnable_class
 from support.fakes import PROJECT_KEY, FakeClient, FakeProject, FakeRecapDataset, make_dataset
 
@@ -29,7 +29,7 @@ def test_the_runnable_reports_writes_the_recap_dataset_and_changes_nothing(monke
     assert [column["name"] for column in recap_dataset.schema] == RECAP_COLUMNS
     records = [dict(zip(RECAP_COLUMNS, row)) for row in recap_dataset.rows]
     assert [(record["tag"], record["dataset"]) for record in records] == [("Stage:Raw", "a"), ("tmp", "a"), ("", "b")]
-    assert "Summary written to dataset recap: 3 rows." in html
+    assert "<strong>Summary written.</strong> 3 rows in dataset recap." in html
 
 
 def test_on_error_sent_through_the_api_is_ignored() -> None:
@@ -40,8 +40,7 @@ def test_on_error_sent_through_the_api_is_ignored() -> None:
         MACRO, FakeClient(project), PROJECT_KEY, config, lambda _: None, lambda _: FakeRecapDataset(["other"])
     )
 
-    assert "Warning: the run went on after these errors:" in html
-    assert "The summary could not be written to dataset recap" in html
+    assert "<strong>Summary not written.</strong> Dataset recap." in html
     assert "If an error occurs" not in html
 
 
@@ -49,7 +48,7 @@ def test_on_recap_error_fail_fails_the_report_when_the_recap_dataset_cannot_be_w
     project = FakeProject([make_dataset("a", ["tmp"])])
     config = {"on_recap_error": "FAIL", "recap_dataset": "recap"}
 
-    with pytest.raises(RunFailed, match="^The summary could not be written to dataset recap"):
+    with pytest.raises(RunFailed, match="^Summary not written to dataset recap"):
         run_macro(
             MACRO, FakeClient(project), PROJECT_KEY, config, lambda _: None, lambda _: FakeRecapDataset(["other"])
         )

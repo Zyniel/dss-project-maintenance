@@ -19,11 +19,11 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from dss_maintenance.core.macro import MaintenanceMacro
-from dss_maintenance.core.options import FAILING_ON_ERROR, ON_ERROR_FAIL
-from dss_maintenance.recap.dataset import write_recap_dataset
-from dss_maintenance.recap.html import build_recap_html, read_grid_cdn, with_outcome
-from dss_maintenance.recap.page import OUTCOME_FAILED, OUTCOME_SUCCESS, OUTCOME_WARNING
+from dss_project_maintenance.core.macro import MaintenanceMacro
+from dss_project_maintenance.core.options import FAILING_ON_ERROR, ON_ERROR_FAIL
+from dss_project_maintenance.recap.dataset import write_recap_dataset
+from dss_project_maintenance.recap.html import build_recap_html, dss_said, read_grid_cdn, with_outcome
+from dss_project_maintenance.recap.page import OUTCOME_FAILED, OUTCOME_SUCCESS, OUTCOME_WARNING
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +105,9 @@ def build_problems(macro: MaintenanceMacro, recap: dict[str, Any]) -> list[dict[
 
     result = recap["recap_dataset_result"]
     if result and result["error"]:
-        error = result["error"].rstrip(".")  # Some errors end with a period already.
         problems.append(
             {
-                "message": f"The summary could not be written to dataset {result['name']}: {error}.",
+                "message": f"Summary not written to dataset {result['name']}. {dss_said(result['error'])}",
                 "fail": options.get("on_recap_error") == ON_ERROR_FAIL,
             }
         )
@@ -128,12 +127,15 @@ def update_outcome(macro: MaintenanceMacro, recap: dict[str, Any]) -> None:
 
 
 def build_failure_message(recap: dict[str, Any]) -> str:
-    """Return the message of a failed run: every problem, the work first, then where the full recap is.
+    """Return the message of a failed run: every problem, the work first, then where the details are.
 
-    A scenario only sees this message, so it also gives the problems that do not fail the run.
+    DSS shows only this message, so it also gives the problems that do not fail the run.
     """
     messages = [problem["message"] for problem in recap["problems"]]
-    return " ".join(messages + ["The full recap is in the run log, on the line starting with RECAP_JSON."])
+    result = recap["recap_dataset_result"]
+    written = result and not result["error"]
+    details = f"Details in the summary dataset {result['name']}." if written else "Details in the run log."
+    return " ".join(messages + [details])
 
 
 def run_macro(
@@ -175,7 +177,6 @@ def run_macro(
         handler.flush()
     time.sleep(log_wait_seconds)
 
-    html = build_recap_html(recap, page, read_grid_cdn(plugin_config))
     if recap["outcome"] == OUTCOME_FAILED:
         raise RunFailed(build_failure_message(recap))
-    return html
+    return build_recap_html(recap, page, read_grid_cdn(plugin_config))

@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.runner import RunFailed
-from dss_maintenance.macros.clear_datasets_by_tags import MACRO
-from dss_maintenance.macros.clear_datasets_by_tags.recap import RECAP_COLUMNS
+from dss_project_maintenance.core.runner import RunFailed
+from dss_project_maintenance.macros.clear_datasets_by_tags import MACRO
+from dss_project_maintenance.macros.clear_datasets_by_tags.recap import RECAP_COLUMNS
 from support.dataiku_stub import install_fake_dataiku, load_runnable_class
 from support.fakes import PROJECT_KEY, FakeClient, FakeProject, make_dataset
 
@@ -47,10 +47,10 @@ def test_the_runnable_clears_writes_the_recap_dataset_and_returns_the_recap(monk
         ("other", "CLEARED"),
         ("tmp", "CLEARED"),
     ]
-    assert "Summary written to dataset recap: 3 rows." in html
+    assert "<strong>Summary written.</strong> 3 rows in dataset recap." in html
 
 
-def test_on_error_fail_names_the_failed_datasets(
+def test_on_error_fail_counts_the_failed_datasets(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     caplog.set_level(logging.INFO)
@@ -60,7 +60,7 @@ def test_on_error_fail_names_the_failed_datasets(
     )
     config = {"included_tags": ["a"], "simulate": False, "on_error": "FAIL"}
 
-    with pytest.raises(RunFailed, match=r"^1 of 3 datasets to clear failed: d2\. The other 2 were cleared\."):
+    with pytest.raises(RunFailed, match=r"^1 of 3 datasets failed, 2 cleared\. Details in the run log\.$"):
         run_runnable(monkeypatch, project, config, [])
 
     assert project.cleared == ["d1", "d2", "d3"]
@@ -76,10 +76,7 @@ def test_raise_exception_fails_the_run_at_the_first_error(monkeypatch: pytest.Mo
     )
     config = {"included_tags": ["a"], "simulate": False, "on_error": "STOP"}
 
-    with pytest.raises(
-        RunFailed,
-        match=r"^1 of 1 dataset to clear failed: d1\. The run stopped at the first error: 2 datasets were not tried\.",
-    ):
+    with pytest.raises(RunFailed, match=r"^1 of 3 datasets failed, 2 not tried\. Details in the run log\.$"):
         run_runnable(monkeypatch, project, config, [])
 
     assert project.cleared == ["d1"]

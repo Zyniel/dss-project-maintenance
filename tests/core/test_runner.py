@@ -6,8 +6,8 @@ from typing import Any, Optional
 
 import pytest
 
-from dss_maintenance.core.macro import RunStopped
-from dss_maintenance.core.runner import RunFailed, run_macro
+from dss_project_maintenance.core.macro import RunStopped
+from dss_project_maintenance.core.runner import RunFailed, run_macro
 from support.fakes import PROJECT_KEY, FakeClient, FakeProject, FakeRecapDataset, make_dataset
 from support.runs import run
 from support.sample_macro import MACRO
@@ -88,7 +88,7 @@ def test_the_recap_is_written_to_the_recap_dataset_with_the_columns_of_the_macro
 
     assert [column["name"] for column in recap_dataset.schema] == MACRO.recap_columns
     assert [row[1:] for row in recap_dataset.rows] == [["d1", "DONE"], ["d2", "DONE"]]
-    assert "Summary written to dataset r: 2 rows." in html
+    assert "<strong>Summary written.</strong> 2 rows in dataset r." in html
 
 
 def test_the_recap_dataset_keeps_the_earlier_runs() -> None:
@@ -132,8 +132,7 @@ def test_continue_gives_a_warning_after_a_failed_item(caplog: pytest.LogCaptureF
         FakeProject([make_dataset("d1", []), make_dataset("d2", [])]), {"fail": ["d2"], "on_error": "CONTINUE"}
     )
 
-    assert '<div class="dtp-banner"><strong>Warning: the run went on after these errors:</strong>' in html
-    assert "<li>Failed: d2.</li>" in html
+    assert '<div class="dtp-banner dtp-banner-danger"><strong>Failed: d2.</strong></div>' in html
     assert logged_summary(caplog)["outcome"] == "WARNING"
     assert [(r.levelname, r.getMessage()) for r in caplog.records if r.getMessage().startswith("Problem")] == [
         ("WARNING", "Problem: Failed: d2.")
@@ -144,7 +143,7 @@ def test_on_error_fail_fails_the_run_after_the_work(caplog: pytest.LogCaptureFix
     caplog.set_level(logging.INFO)
     project = FakeProject([make_dataset("d1", []), make_dataset("d2", [])])
 
-    with pytest.raises(RunFailed, match=r"^Failed: d2\. The full recap is in the run log"):
+    with pytest.raises(RunFailed, match=r"^Failed: d2\. Details in the run log\.$"):
         run_with(project, {"fail": ["d2"], "on_error": "FAIL"})
 
     summary = logged_summary(caplog)  # The run log has the recap anyway.
@@ -152,14 +151,21 @@ def test_on_error_fail_fails_the_run_after_the_work(caplog: pytest.LogCaptureFix
     assert any(r.levelname == "ERROR" and r.getMessage() == "Problem: Failed: d2." for r in caplog.records)
 
 
+def test_a_failed_run_points_to_the_summary_dataset_when_it_was_written() -> None:
+    project = FakeProject([make_dataset("d1", []), make_dataset("d2", [])])
+    config = {"fail": ["d2"], "on_error": "FAIL", "recap_dataset": "r"}
+
+    with pytest.raises(RunFailed, match=r"^Failed: d2\. Details in the summary dataset r\.$"):
+        run_with(project, config, FakeRecapDataset())
+
+
 def test_a_recap_dataset_not_written_gives_a_warning_by_default() -> None:
     recap_dataset = FakeRecapDataset(["customer_id"], [["c1"]])
 
     html = run_with(FakeProject([make_dataset("ds", [])]), {"recap_dataset": "r"}, recap_dataset)
 
-    assert "Warning: the run went on after these errors:" in html
-    assert "<li>The summary could not be written to dataset r: ValueError: it already holds other columns" in html
-    assert "an earlier run wrote to.</li>" in html  # One period, though the error ends with one.
+    assert '<div class="dtp-banner"><strong>Summary not written.</strong> Dataset r. DSS said: ValueError: ' in html
+    assert "Summary written." not in html
     assert recap_dataset.rows == [["c1"]]
 
 
@@ -168,7 +174,7 @@ def test_on_recap_error_fail_fails_the_run() -> None:
     config = {"on_recap_error": "FAIL", "recap_dataset": "r"}
 
     with pytest.raises(
-        RunFailed, match=r"^The summary could not be written to dataset r: OSError: disk full\. The full"
+        RunFailed, match=r"^Summary not written to dataset r\. DSS said: OSError: disk full\. Details in the run log\.$"
     ):
         run_with(FakeProject([make_dataset("ds", [])]), config, recap_dataset)
 
@@ -179,14 +185,20 @@ def test_on_error_fail_does_not_cover_the_recap_dataset() -> None:
 
     html = run_with(FakeProject([make_dataset("ds", [])]), config, recap_dataset)
 
-    assert "Warning: the run went on after these errors:" in html
+    assert "<strong>Summary not written.</strong>" in html
 
 
 def test_both_problems_make_one_message_the_work_first() -> None:
     recap_dataset = FakeRecapDataset(write_error=OSError("disk full"))
     config = {"fail": ["ds"], "on_error": "FAIL", "on_recap_error": "FAIL", "recap_dataset": "r"}
 
-    with pytest.raises(RunFailed, match=r"^Failed: ds\. The summary could not be written to dataset r: OSError: disk"):
+    with pytest.raises(
+        RunFailed,
+        match=(
+            r"^Failed: ds\. Summary not written to dataset r\. DSS said: OSError: disk full\. "
+            r"Details in the run log\.$"
+        ),
+    ):
         run_with(FakeProject([make_dataset("ds", [])]), config, recap_dataset)
 
 
@@ -194,7 +206,7 @@ def test_a_failed_run_message_also_gives_the_problems_that_do_not_fail_it() -> N
     recap_dataset = FakeRecapDataset(write_error=OSError("disk full"))
     config = {"fail": ["ds"], "on_error": "CONTINUE", "on_recap_error": "FAIL", "recap_dataset": "r"}
 
-    with pytest.raises(RunFailed, match=r"^Failed: ds\. The summary could not be written"):
+    with pytest.raises(RunFailed, match=r"^Failed: ds\. Summary not written"):
         run_with(FakeProject([make_dataset("ds", [])]), config, recap_dataset)
 
 

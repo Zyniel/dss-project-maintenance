@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from dss_maintenance.core.options import RECAP_OPTION_DEFAULTS, RUN_OPTION_DEFAULTS
-from dss_maintenance.macros.clear_datasets_by_tags.cleanup import OPTION_DEFAULTS, read_options
+from dss_project_maintenance.core.options import RECAP_OPTION_DEFAULTS, RUN_OPTION_DEFAULTS
+from dss_project_maintenance.macros.clear_datasets_by_tags.cleanup import OPTION_DEFAULTS, read_options
 from support.fakes import PROJECT_KEY
 
 

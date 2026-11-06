@@ -3,8 +3,8 @@
 import json
 from typing import Any, Optional
 
-from dss_maintenance.macros.report_dataset_tags import MACRO
-from dss_maintenance.macros.report_dataset_tags.recap import (
+from dss_project_maintenance.macros.report_dataset_tags import MACRO
+from dss_project_maintenance.macros.report_dataset_tags.recap import (
     COLUMNS_BY_TAG,
     COLUMNS_BY_TAG_AND_DATASET,
     NO_TAG,
@@ -15,8 +15,8 @@ from dss_maintenance.macros.report_dataset_tags.recap import (
     describe_counts,
     describe_failures,
 )
-from dss_maintenance.recap.html import build_recap_html
-from dss_maintenance.recap.page import COLUMN_TAGS
+from dss_project_maintenance.recap.html import build_recap_html
+from dss_project_maintenance.recap.page import COLUMN_TAGS
 from support.fakes import FakeProject, make_dataset
 from support.runs import run
 
@@ -176,7 +176,7 @@ def test_an_unknown_category_stands_out_and_unchecked_figures_are_hidden() -> No
     html = build_recap_html(recap, build_recap_page(recap))
     assert 'dtp-metric-label">Unknown' not in html
     assert "No category tag on the datasets." in html
-    assert '<div class="dtp-banner">Category tags not checked' in html
+    assert '<div class="dtp-banner"><strong>Category tags not checked.</strong> ' in html
 
 
 def test_a_project_with_no_dataset_and_no_tag_shows_a_message() -> None:

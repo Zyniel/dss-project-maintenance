@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from dss_maintenance.core.tags import SCOPE_ALL_DATASETS, SCOPE_LABEL
-from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
+from dss_project_maintenance.core.tags import SCOPE_ALL_DATASETS, SCOPE_LABEL
+from dss_project_maintenance.macros.clear_datasets_by_tags.cleanup import (
     OPTION_LABELS,
     SKIP_STOPPED,
     STATUS_CLEARED,
@@ -12,11 +12,12 @@ from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
     STATUS_LABELS,
     STATUS_SKIPPED,
     STATUS_WOULD_BE_CLEARED,
+    WARNING_SHARING_NOT_CHECKED,
     count_by_status,
 )
-from dss_maintenance.recap.dataset import format_flag
-from dss_maintenance.recap.html import build_common_option_chips, count_of, format_duration, yes_no
-from dss_maintenance.recap.page import (
+from dss_project_maintenance.recap.dataset import format_flag
+from dss_project_maintenance.recap.html import build_common_option_chips, count_of, format_duration, yes_no
+from dss_project_maintenance.recap.page import (
     ALL_STATUSES,
     COLUMN_LONG_TEXT,
     COLUMN_NUMBER,
@@ -64,9 +65,6 @@ RECAP_COLUMNS = [
     "partition_dimensions",
     "clear_duration_seconds",
 ]
-
-# Failed dataset names given in the failure message. The recap has all of them.
-FAILED_NAMES_SHOWN = 10
 
 # The statuses of the table, failures first.
 STATUSES = [
@@ -127,8 +125,8 @@ def build_summary(recap: dict[str, Any]) -> dict[str, Any]:
         "excluded_tag_counts": recap["excluded_tag_counts"],
         "sharing_checked": recap["sharing_checked"],
         "recipes_checked": recap["recipes_checked"],
-        "notices": recap["notices"],
-        "blockers": recap["blockers"],
+        "notices": [str(notice) for notice in recap["notices"]],
+        "blockers": [str(blocker) for blocker in recap["blockers"]],
         "counts": {
             "scanned": recap["scanned_count"],
             "selected": len(recap["datasets"]),
@@ -197,45 +195,64 @@ def build_recap_rows(recap: dict[str, Any]) -> list[list[str]]:
 
 
 def describe_failures(recap: dict[str, Any]) -> str:
-    """Return the datasets that could not be cleared, or "". The runner decides if the run fails."""
-    failed_names = [row["name"] for row in recap["datasets"] if row["status"] == STATUS_FAILED]
-    if not failed_names:
+    """Return how many datasets could not be cleared, or "". The runner decides if the run fails."""
+    counts = count_by_status(recap["datasets"])
+    failed, cleared = counts[STATUS_FAILED], counts[STATUS_CLEARED]
+    if not failed:
         return ""
 
-    cleared_count = count_by_status(recap["datasets"])[STATUS_CLEARED]
-    names = ", ".join(failed_names[:FAILED_NAMES_SHOWN])
-    if len(failed_names) > FAILED_NAMES_SHOWN:
-        names += f" and {len(failed_names) - FAILED_NAMES_SHOWN} more"
-    to_clear = count_of(len(failed_names) + cleared_count, "dataset")
-    message = f"{len(failed_names)} of {to_clear} to clear failed: {names}."
-    if cleared_count == 1:
-        message += " The other one was cleared."
-    elif cleared_count:
-        message += f" The other {cleared_count} were cleared."
     not_tried = sum(1 for row in recap["datasets"] if row["skip_code"] == SKIP_STOPPED)
+    message = f"{failed} of {count_of(failed + cleared + not_tried, 'dataset')} failed"
+    if cleared:
+        message += f", {cleared} cleared"
     if not_tried:
-        verb = "was" if not_tried == 1 else "were"
-        message += f" The run stopped at the first error: {count_of(not_tried, 'dataset')} {verb} not tried."
-    return message
+        message += f", {not_tried} not tried"
+    return f"{message}."
+
+
+def build_failure_banners(recap: dict[str, Any]) -> list[Banner]:
+    """Return the banner of a run that goes on after a failure. A run that ends in error has no page."""
+    counts = count_by_status(recap["datasets"])
+    failed, cleared = counts[STATUS_FAILED], counts[STATUS_CLEARED]
+    if not failed:
+        return []
+
+    list_them = f'Click "{STATUS_LABELS[STATUS_FAILED]}" to list {"it" if failed == 1 else "them"}.'
+    text = f"{cleared} cleared. {list_them}" if cleared else list_them
+    return [Banner(TONE_DANGER, f"{failed} of {count_of(failed + cleared, 'dataset')} failed.", text)]
+
+
+def build_risk_banners(recap: dict[str, Any]) -> list[Banner]:
+    """Return the banner counting the datasets to clear that carry a risk. The table has their warnings."""
+    final_status = STATUS_WOULD_BE_CLEARED if recap["simulate"] else STATUS_CLEARED
+    rows = [row for row in recap["datasets"] if row["status"] == final_status]
+    risks = {
+        "shared": [row["name"] for row in rows if row["is_shared"]],
+        "partitioned": [row["name"] for row in rows if row["partition_dimensions"]],
+        "with no recipe": [row["name"] for row in rows if row["built_by_recipe"] is False],
+    }
+    at_risk = len({name for names in risks.values() for name in names})
+    if not at_risk:
+        return []
+
+    carry = "carries" if at_risk == 1 else "carry"
+    if recap["simulate"]:
+        title = f"{count_of(at_risk, 'dataset')} to clear {carry} a risk."
+    else:
+        title = f"{count_of(at_risk, 'cleared dataset')} {carry} a risk."
+    counts = ", ".join(f"{len(names)} {risk}" for risk, names in risks.items() if names)
+    return [Banner(TONE_CAUTION, title, f"{counts}.")]
 
 
 def build_banners(recap: dict[str, Any]) -> list[Banner]:
     """Return the banners of this macro. The shared code adds the notices and the recap dataset result."""
     banners = []
     if recap["simulate"]:
-        banners.append(
-            Banner(
-                TONE_CAUTION,
-                "Simulation: nothing was cleared.",
-                'Uncheck "Simulate" and run the macro again to clear the datasets marked '
-                f'"{STATUS_LABELS[STATUS_WOULD_BE_CLEARED]}".',
-            )
-        )
-    if recap["blockers"]:
-        banners.append(
-            Banner(TONE_DANGER, "A real run would stop before clearing anything:", items=tuple(recap["blockers"]))
-        )
-    return banners
+        simulate = OPTION_LABELS["simulate"]
+        banners.append(Banner(TONE_PENDING, "Simulation, nothing was cleared.", f'Uncheck "{simulate}" to clear.'))
+    for blocker in recap["blockers"]:
+        banners.append(Banner(TONE_DANGER, f"A real run would stop: {blocker.check} not checked.", blocker.text))
+    return banners + build_failure_banners(recap) + build_risk_banners(recap)
 
 
 def build_metrics(recap: dict[str, Any]) -> list[Metric]:
@@ -294,7 +311,10 @@ def build_table(recap: dict[str, Any]) -> Table:
         {
             "dataset": row["name"],
             "status": row["status"],
-            "detail": "; ".join(part for part in [row["detail"], *row["warnings"]] if part),
+            # A notice already says that the sharing was not checked: each row does not repeat it.
+            "detail": "; ".join(
+                part for part in [row["detail"], *row["warnings"]] if part and part != WARNING_SHARING_NOT_CHECKED
+            ),
             "included_tags": row["included_tags"],
             "excluded_tags": row["excluded_tags"],
             "type": row["type"],

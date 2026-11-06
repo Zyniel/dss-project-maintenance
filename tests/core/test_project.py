@@ -2,7 +2,7 @@
 
 import pytest
 
-from dss_maintenance.core.project import (
+from dss_project_maintenance.core.project import (
     list_project_datasets,
     name_projects,
     read_datasets_without_recipe,

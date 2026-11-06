@@ -3,8 +3,8 @@
 import json
 from typing import Any
 
-from dss_maintenance.macros.report_dataset_tags import MACRO
-from dss_maintenance.macros.report_dataset_tags.report import OPTION_DEFAULTS, OPTION_LABELS
+from dss_project_maintenance.macros.report_dataset_tags import MACRO
+from dss_project_maintenance.macros.report_dataset_tags.report import OPTION_DEFAULTS, OPTION_LABELS
 from support.dataiku_stub import RUNNABLES
 
 # The parameters of the form, top to bottom.

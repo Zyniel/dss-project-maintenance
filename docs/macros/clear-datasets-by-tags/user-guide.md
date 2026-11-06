@@ -25,7 +25,7 @@ Only project administrators can read which datasets are shared with other projec
 
 In every case, the [options](#the-options) and the [datasets that are never cleared](#datasets-that-are-never-cleared) still apply, and "Simulate" only shows what would be cleared.
 
-With "All datasets", the form hides the included tags but keeps their values: the run ignores them, and a notice names them. To remove the notice, choose "Datasets with the included tags", empty the two fields, then choose "All datasets" again.
+With "All datasets", the form hides the included tags but keeps their values: the run ignores them, and a grey notice names them. To remove the notice, choose "Datasets with the included tags", empty the two fields, then choose "All datasets" again.
 
 Each list of tags has three fields:
 
@@ -40,8 +40,8 @@ The typed tags and the category tags of a list make one single list.
 Rules:
 
 - **Exact match**, upper and lower case included: `Temporary` does not match `temporary`.
-- **A tag in both lists** is excluded, and the recap shows a notice. Check the two lists.
-- **A tag on no dataset** selects nothing, or excludes nothing. It does not stop the run.
+- **A tag in both lists** is excluded, and a notice names it. Check the two lists.
+- **A tag on no dataset** selects nothing, or excludes nothing. It does not stop the run, and a notice names it: with a typo in an excluded tag, the datasets it should protect are cleared.
 
 ## The options
 
@@ -81,7 +81,7 @@ For each selected dataset, the first rule that applies wins:
 
 ## Checks before clearing
 
-The macro first decides for each dataset, and only then clears. It finds every reason to stop a real run before it clears anything. A simulation shows these reasons in a red banner, and does not stop.
+The macro first decides for each dataset, and only then clears. It finds every reason to stop a real run before it clears anything. A simulation shows these reasons in red banners, and does not stop.
 
 | Check | When it works | When it fails |
 |---|---|---|
@@ -92,12 +92,14 @@ So, with "Clear shared datasets" unchecked, a real run by an editor who is not a
 
 ## Read the recap
 
-At the top: the macro, the project, who ran it and when (UTC). Then the banners:
+At the top: the macro, the project, who ran it and when (UTC). Then the banners, always in this order:
 
-- **Yellow, first:** "Warning: the run went on after these errors", with the datasets that could not be cleared, or the summary dataset that was not written. Only when an option says to continue: otherwise the run ends in error, and DSS shows only its message.
-- **Yellow:** simulation, then one banner per notice (a check that was not possible, a tag in both lists...).
-- **Red:** reasons why a real run would stop.
-- **Grey:** the summary dataset was written.
+- **Blue:** how to read the run: a simulation cleared nothing.
+- **Red:** data failed, or a real run would stop. Click "Failed" to list the datasets that failed. This banner shows only when an option says to continue: otherwise the run ends in error, and DSS shows only its message.
+- **Yellow:** what to check: the datasets to clear that carry a risk (shared, partitioned, with no recipe), a check that was not possible, tags on no dataset or in both lists, no dataset selected, a summary dataset that was not written.
+- **Grey:** for information: included tags ignored, the summary dataset written.
+
+Banners give counts for what the table and the summary dataset hold. They give details only for what these cannot show, such as a tag of the form or an error of DSS. The log has the whole error.
 
 Then:
 
@@ -116,7 +118,7 @@ Then:
 | Skipped | A rule or an option protected it, or the run stopped before it ("Not tried: the run stopped"). The reason is in the Detail column. |
 | Excluded | It has the excluded tags. |
 
-The Detail column says why: "Has included tags", "Has excluded tags", or "Has all included tags" and "Has all excluded tags" with "All". With "All datasets", a dataset to clear has no reason to show. A skipped dataset says why, for example "Is external" or "Has no recipe; 'Clear datasets with no recipe' is unchecked". It also gives the warnings of cleared datasets: shared, partitioned, with no recipe, or "Sharing not checked" when the user cannot read the sharing.
+The Detail column says why: "Has included tags", "Has excluded tags", or "Has all included tags" and "Has all excluded tags" with "All". With "All datasets", a dataset to clear has no reason to show. A skipped dataset says why, for example "Is external" or "Has no recipe; 'Clear datasets with no recipe' is unchecked". It also gives the warnings of cleared datasets: shared, partitioned, or with no recipe. When the user cannot read the sharing, a banner says it once: the summary dataset and the JSON recap have "Sharing not checked" on each dataset.
 
 ## Good practice
 

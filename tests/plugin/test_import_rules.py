@@ -15,9 +15,9 @@ import pytest
 from support.dataiku_stub import RESOURCES, ROOT, RUNNABLES
 
 LIB = ROOT / "python-lib"
-PACKAGE = LIB / "dss_maintenance"
-SHARED = ("dss_maintenance.core", "dss_maintenance.recap")
-MACROS = "dss_maintenance.macros"
+PACKAGE = LIB / "dss_project_maintenance"
+SHARED = ("dss_project_maintenance.core", "dss_project_maintenance.recap")
+MACROS = "dss_project_maintenance.macros"
 
 
 def imported_modules(path: Path) -> list[str]:
@@ -72,7 +72,9 @@ def test_a_macro_never_imports_another_macro(path: Path) -> None:
 def test_a_runnable_imports_only_its_macro_and_the_shared_code(folder: str) -> None:
     own = f"{MACROS}.{folder.replace('-', '_')}"
     modules = [
-        module for module in imported_modules(RUNNABLES / folder / "runnable.py") if is_under(module, "dss_maintenance")
+        module
+        for module in imported_modules(RUNNABLES / folder / "runnable.py")
+        if is_under(module, "dss_project_maintenance")
     ]
 
     assert own in modules
@@ -81,6 +83,6 @@ def test_a_runnable_imports_only_its_macro_and_the_shared_code(folder: str) -> N
 
 @pytest.mark.parametrize("path", sorted(RESOURCES.glob("*.py")), ids=lambda path: path.name)
 def test_a_resource_file_imports_only_the_shared_code(path: Path) -> None:
-    modules = [module for module in imported_modules(path) if is_under(module, "dss_maintenance")]
+    modules = [module for module in imported_modules(path) if is_under(module, "dss_project_maintenance")]
 
     assert all(is_under(module, *SHARED) for module in modules), modules

@@ -15,9 +15,11 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
-from dss_maintenance.core.options import read_checkbox, read_recap_options
-from dss_maintenance.core.project import list_project_datasets
-from dss_maintenance.core.tags import split_category_tag
+from dss_project_maintenance.core.options import read_checkbox, read_recap_options
+from dss_project_maintenance.core.project import list_project_datasets
+from dss_project_maintenance.core.tags import split_category_tag
+from dss_project_maintenance.recap.html import dss_said
+from dss_project_maintenance.recap.page import TONE_CAUTION, Banner
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +101,7 @@ def run_report(
     """
     options = read_options(config, project_key)
     logger.info("Options: %s", options)
-    notices: list[str] = []  # What the reader must know. The report is still made.
+    notices: list[Banner] = []  # What the reader must know. The report is still made.
 
     datasets = sorted(list_project_datasets(project, project_key), key=lambda dataset: dataset["name"])
 
@@ -107,17 +109,18 @@ def run_report(
     try:
         categories = read_tag_categories(project)
     except Exception as error:
-        notices.append(
-            f"Category tags not checked: DSS did not give the tag categories ({error}). "
-            "Only DSS administrators can read them."
-        )
+        logger.warning("Could not read the tag categories: %s", error)
+        text = f"Only DSS administrators can read the categories. {dss_said(error)}"
+        notices.append(Banner(TONE_CAUTION, "Category tags not checked.", text))
 
     project_tags: list[str] = []
     if options["show_unused_tags"]:
         try:
             project_tags = read_project_tags(project)
         except Exception as error:
-            notices.append(f"Unused tags not listed: reading the project tag list failed ({error}).")
+            logger.warning("Could not read the project tag list: %s", error)
+            text = f"The project tag list could not be read. {dss_said(error)}"
+            notices.append(Banner(TONE_CAUTION, "Unused tags not listed.", text))
 
     datasets_by_tag: dict[str, list[str]] = {}
     untagged_datasets = []
@@ -144,7 +147,7 @@ def run_report(
         )
     logger.info("Datasets with no tag: %s", ", ".join(untagged_datasets) or "none")
     for notice in notices:
-        logger.warning(notice)
+        logger.warning("%s", notice)
     progress_callback(100)
 
     return {

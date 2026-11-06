@@ -16,11 +16,11 @@ Two options say what to do when something goes wrong.
 
 **If the summary is not written**, in the "Summary" section, covers the summary dataset that could not be written. The datasets are cleared anyway. Its choices are "Continue" (the default) and "Fail the run".
 
-In a scenario, keep a choice that ends the run in error: then the scenario step that runs the macro turns red. The message names the problems, for example: "2 of 14 datasets to clear failed: a, b. The other 12 were cleared." With "Raise exception", it also says how many datasets were not tried. In every case, the summary dataset is written and the log has the `RECAP_JSON` line before the run ends.
+In a scenario, keep a choice that ends the run in error: then the scenario step that runs the macro turns red. The message counts the problems and says where the details are, for example: "2 of 14 datasets failed, 12 cleared. Details in the summary dataset recap." With no summary dataset, the details are in the run log. With "Raise exception", it also says how many datasets were not tried. In every case, the summary dataset is written and the log has the `RECAP_JSON` line before the run ends.
 
 A run that ends in error shows only its message, not the recap. By hand, choose "Continue, run ends as success" to see the recap even when a dataset cannot be cleared.
 
-With "Continue", DSS shows the run as a success, even when something went wrong. DSS cannot show a macro run as a warning. So the recap shows a yellow banner at the top: "Warning: the run went on after these errors". The log has a WARNING line for each problem, and the JSON recap has `"outcome": "WARNING"`.
+With "Continue", DSS shows the run as a success, even when something went wrong. DSS cannot show a macro run as a warning. So the recap shows a banner at the top: red when datasets failed, yellow when the summary dataset was not written. The log has a WARNING line for each problem, and the JSON recap has `"outcome": "WARNING"`.
 
 A run also ends in error, before it clears anything, when the form is not valid or when a [check](user-guide.md#checks-before-clearing) stops it. This does not depend on these options.
 
@@ -140,7 +140,7 @@ The same JSON is in the hidden block of the HTML and on the `RECAP_JSON` line of
 |---|---|
 | `run_id`, `macro`, `project_key`, `run_by`, `started_at`, `simulate` | The run. |
 | `outcome` | `"SUCCESS"`, `"WARNING"` (something went wrong, and the run went on) or `"FAILED"`. |
-| `problems` | What went wrong: the datasets that could not be cleared, then the summary dataset. |
+| `problems` | What went wrong: how many datasets could not be cleared, then the summary dataset. |
 | `options` | The options used, with the same names as the parameters. |
 | `included_scope` | `"TAGS"` or `"ALL_DATASETS"`. |
 | `included_tags`, `included_match`, `excluded_tags`, `excluded_match` | The tags read in the form, each list merged, and "Any" or "All". With `"ALL_DATASETS"`, `included_tags` is empty. |
