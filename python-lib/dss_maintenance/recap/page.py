@@ -43,7 +43,7 @@ OUTCOME_FAILED = "FAILED"  # Something went wrong, and the form asked to fail th
 
 
 class Banner(NamedTuple):
-    """A message above the figures. The title is in bold. Items make a bulleted list."""
+    """A message above the figures. The title is in bold. Items make a bulleted list, under a title."""
 
     tone: str  # TONE_CAUTION (yellow), TONE_DANGER (red) or TONE_MUTED (grey).
     title: str = ""

@@ -10,15 +10,15 @@ Two options say what to do when something goes wrong.
 
 | Choice | Value | What happens |
 |---|---|---|
-| Continue, run ends as success | `CONTINUE` | Every dataset is tried. The run is a success. This is the default. |
-| Continue, run ends in error | `FAIL` | Every dataset is tried. Then the run ends in error. |
+| Continue, run ends as success | `CONTINUE` | Every dataset is tried. The run is a success. |
+| Continue, run ends in error | `FAIL` | Every dataset is tried. Then the run ends in error. This is the default. |
 | Raise exception | `STOP` | The clearing stops at the first dataset that cannot be cleared. The datasets after it are skipped, with the skip code `STOPPED`. Then the run ends in error. |
 
 **If the summary is not written**, in the "Summary" section, covers the summary dataset that could not be written. The datasets are cleared anyway. Its choices are "Continue" (the default) and "Fail the run".
 
-In a scenario, choose a choice that ends the run in error: then the scenario step that runs the macro turns red. The message names the problems, for example: "2 of 14 datasets to clear failed: a, b. The other 12 were cleared." With "Raise exception", it also says how many datasets were not tried. In every case, the summary dataset is written and the log has the `RECAP_JSON` line before the run ends.
+In a scenario, keep a choice that ends the run in error: then the scenario step that runs the macro turns red. The message names the problems, for example: "2 of 14 datasets to clear failed: a, b. The other 12 were cleared." With "Raise exception", it also says how many datasets were not tried. In every case, the summary dataset is written and the log has the `RECAP_JSON` line before the run ends.
 
-Keep the defaults when you run the macro by hand: a failed run shows only its message, not the recap.
+A run that ends in error shows only its message, not the recap. By hand, choose "Continue, run ends as success" to see the recap even when a dataset cannot be cleared.
 
 With "Continue", DSS shows the run as a success, even when something went wrong. DSS cannot show a macro run as a warning. So the recap shows a yellow banner at the top: "Warning: the run went on after these errors". The log has a WARNING line for each problem, and the JSON recap has `"outcome": "WARNING"`.
 
@@ -111,7 +111,7 @@ A failed run, for example with a form that is not valid, raises an error in `get
 | `purge_partitioned` | boolean | `false` |
 | `purge_shared` | boolean | `true` |
 | `purge_without_recipe` | boolean | `false` |
-| `on_error` | `"CONTINUE"`, `"FAIL"` or `"STOP"` | `"CONTINUE"` |
+| `on_error` | `"CONTINUE"`, `"FAIL"` or `"STOP"` | `"FAIL"` |
 | `recap_to_dataset` | boolean: `false` ignores `recap_dataset` | `true` if `recap_dataset` is given |
 | `recap_dataset` | dataset name, or `PROJECTKEY.name` of this project | none |
 | `recap_append` | boolean | `true` |
@@ -129,6 +129,7 @@ Only a real `true` or `false` counts, and only the values above for `on_error` a
 
 - a simulation;
 - shared datasets cleared, partitioned and recipe-less datasets skipped;
+- a run that ends in error when a dataset cannot be cleared;
 - earlier runs kept in the summary dataset.
 
 ## The JSON recap

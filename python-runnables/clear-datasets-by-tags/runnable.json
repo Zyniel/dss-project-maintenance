@@ -160,7 +160,7 @@
                     "label": "Raise exception"
                 }
             ],
-            "defaultValue": "CONTINUE",
+            "defaultValue": "FAIL",
             "mandatory": true
         },
         {

@@ -59,8 +59,13 @@ def test_the_error_choices() -> None:
 # The "Run" section
 
 
-def test_run_options_continue_on_errors_by_default() -> None:
-    assert read_run_options({}) == RUN_OPTION_DEFAULTS == {"on_error": "CONTINUE"}
+def test_run_options_end_the_run_in_error_by_default() -> None:
+    assert read_run_options({}) == RUN_OPTION_DEFAULTS == {"on_error": "FAIL"}
+
+
+@pytest.mark.parametrize("value", [None, "fail", "Continue, run ends as success", 1])
+def test_an_unknown_on_error_ends_the_run_in_error(value: Any) -> None:
+    assert read_run_options({"on_error": value}) == {"on_error": "FAIL"}
 
 
 @pytest.mark.parametrize("value", ["FAIL", "STOP"])
@@ -69,7 +74,7 @@ def test_on_error_can_fail_the_run(value: str) -> None:
 
 
 def test_the_old_checkbox_fail_on_error_is_ignored() -> None:
-    assert read_run_options({"fail_on_error": True}) == {"on_error": "CONTINUE"}
+    assert read_run_options({"fail_on_error": False}) == {"on_error": "FAIL"}
 
 
 # The "Summary" section

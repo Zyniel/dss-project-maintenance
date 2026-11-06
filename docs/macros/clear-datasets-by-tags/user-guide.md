@@ -51,7 +51,7 @@ Rules:
 | Clear shared datasets | Checked | Checked: the projects that use them can break. Unchecked: they are skipped, which needs project admin rights. |
 | Clear partitioned datasets | Unchecked | Checked: all their partitions are cleared. Unchecked: they are skipped. |
 | Clear datasets with no recipe | Unchecked | Checked: no recipe can rebuild their data, so it is lost. Unchecked: they are skipped. |
-| If an error occurs | Continue, run ends as success | When a dataset cannot be cleared. The other choices end the run in error: see [automation](automation.md#scenarios). |
+| If an error occurs | Continue, run ends in error | When a dataset cannot be cleared. Every dataset is tried, then the run ends in error, and DSS shows only its message. "Continue, run ends as success" shows the recap: see [automation](automation.md#scenarios). |
 | Write to a dataset | Unchecked | Keeps the recap in a dataset: see [automation](automation.md#summary-dataset). |
 | Summary dataset | None | Visible when the option above is checked. |
 | Append mode | Checked | Visible when "Write to a dataset" is checked. Unchecked: each run replaces the content of the dataset. |
@@ -94,8 +94,8 @@ So, with "Clear shared datasets" unchecked, a real run by an editor who is not a
 
 At the top: the macro, the project, who ran it and when (UTC). Then the banners:
 
-- **Yellow, first:** "Warning: the run went on after these errors", with the datasets that could not be cleared, or the summary dataset that was not written.
-- **Yellow:** simulation, or a notice (a check that was not possible, a tag in both lists...).
+- **Yellow, first:** "Warning: the run went on after these errors", with the datasets that could not be cleared, or the summary dataset that was not written. Only when an option says to continue: otherwise the run ends in error, and DSS shows only its message.
+- **Yellow:** simulation, then one banner per notice (a check that was not possible, a tag in both lists...).
 - **Red:** reasons why a real run would stop.
 - **Grey:** the summary dataset was written.
 
@@ -124,4 +124,4 @@ The Detail column says why: "Has included tags", "Has excluded tags", or "Has al
 - **With "All datasets",** give an excluded tag to each dataset to keep, and check its row is "Excluded" in the simulation.
 - **Protect the summary dataset.** Give it an excluded tag, so that runs with other tags leave it alone.
 - **Check the advanced options with care.** Each one lets the macro clear data that is harder to get back. "Clear shared datasets" is checked by default: uncheck it when other projects must keep their data.
-- **In a scenario,** choose "Continue, run ends in error" or "Raise exception" in "If an error occurs", and "Fail the run" in "If the summary is not written" if you keep a history, so that the step turns red when something fails.
+- **In a scenario,** keep "Continue, run ends in error" (the default) or choose "Raise exception" in "If an error occurs", and choose "Fail the run" in "If the summary is not written" if you keep a history, so that the step turns red when something fails.

@@ -6,7 +6,7 @@ What the tests prove, and what to check on a real DSS.
 
 | What | How |
 |---|---|
-| The shared code and each macro | 375 tests with fake DSS objects, on Python 3.9 and 3.13. |
+| The shared code and each macro | 380 tests with fake DSS objects, on Python 3.9 and 3.13. |
 | The forms match the code, `runnable.py` loads, the import rules are respected | Tests of `tests/plugin`, for each macro. |
 | The DSS API calls exist, with the expected shape | Read in the code of the public API client, `dataiku-api-client` 15.2.1. |
 | The plugin works on a real DSS | Run on a local DSS 13.4.4 container: see the checks below. Some checks are also [integration tests](integration-tests.md), which a test DSS can run again. |

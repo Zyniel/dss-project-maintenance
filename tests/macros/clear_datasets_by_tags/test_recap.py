@@ -342,10 +342,10 @@ def test_notices_and_options_are_shown() -> None:
 
     html = recap_html(project, config)
 
-    assert "<li>Sharing not checked." in html
+    assert '<div class="dtp-banner">Sharing not checked.' in html
     assert '<span class="dtp-tag">Clear partitioned datasets: no</span>' in html
     assert '<span class="dtp-tag">Clear shared datasets: yes</span>' in html
-    assert '<span class="dtp-tag">If an error occurs: Continue, run ends as success</span>' in html
+    assert '<span class="dtp-tag">If an error occurs: Continue, run ends in error</span>' in html
     assert '<span class="dtp-tag">If the summary is not written: Continue</span>' in html
     assert '<span class="dtp-tag">Summary dataset: recap, earlier runs kept</span>' in html
 

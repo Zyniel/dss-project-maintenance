@@ -124,14 +124,17 @@ def test_banners_by_tone_then_the_notices_of_the_run() -> None:
         Banner(TONE_DANGER, "A real run would stop:", items=("reason 1", "reason 2")),
     ]
 
-    html = html_of(make_page(banners=banners), notices=["Sharing not checked."])
+    html = html_of(make_page(banners=banners), notices=["Sharing not checked.", "Recipes not checked."])
 
     assert '<div class="dtp-banner"><strong>Simulation: nothing was done.</strong> Uncheck "Simulate".</div>' in html
     assert (
         '<div class="dtp-banner dtp-banner-danger"><strong>A real run would stop:</strong>'
         "<ul><li>reason 1</li><li>reason 2</li></ul></div>"
     ) in html
-    assert '<div class="dtp-banner"><ul><li>Sharing not checked.</li></ul></div>' in html
+    # One banner per notice, as text: a list with no title above it would be indented.
+    assert (
+        '<div class="dtp-banner">Sharing not checked.</div><div class="dtp-banner">Recipes not checked.</div>' in html
+    )
     assert html.index("A real run would stop") < html.index("Sharing not checked.")
 
 
