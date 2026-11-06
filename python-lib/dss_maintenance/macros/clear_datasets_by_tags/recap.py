@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from dss_maintenance.core.tags import SCOPE_ALL_DATASETS, SCOPE_LABEL
 from dss_maintenance.macros.clear_datasets_by_tags.cleanup import (
     OPTION_LABELS,
     SKIP_STOPPED,
@@ -117,6 +118,7 @@ def build_summary(recap: dict[str, Any]) -> dict[str, Any]:
         "started_at": recap["started_at"],
         "simulate": recap["simulate"],
         "options": recap["options"],
+        "included_scope": recap["included_scope"],
         "included_tags": recap["included_tags"],
         "included_match": recap["included_match"],
         "excluded_tags": recap["excluded_tags"],
@@ -274,11 +276,11 @@ def build_sections(recap: dict[str, Any]) -> list[Section]:
     option_chips = [Chip(f"{OPTION_LABELS[option]}: {yes_no(options[option])}") for option in SHOWN_OPTIONS]
     sections = [Section("Options", chips=tuple(option_chips + build_common_option_chips(options)))]
 
-    if recap["included_tags"]:
+    if recap["included_scope"] == SCOPE_ALL_DATASETS:
+        sections.append(Section(SCOPE_LABEL, text="All datasets of the project."))
+    else:
         # An included tag on no dataset selects nothing: it stands out, it may be a typo.
         sections.append(build_tag_section("Included tags", recap["included_match"], recap["included_tag_counts"], True))
-    else:
-        sections.append(Section("Included tags", text="None: every dataset of the project is selected."))
     if recap["excluded_tags"]:
         sections.append(
             build_tag_section("Excluded tags", recap["excluded_match"], recap["excluded_tag_counts"], False)
@@ -300,10 +302,10 @@ def build_table(recap: dict[str, Any]) -> Table:
         }
         for row in recap["datasets"]
     ]
-    if recap["included_tags"]:
-        empty_message = "No dataset of this project matches the included tags."
-    else:
+    if recap["included_scope"] == SCOPE_ALL_DATASETS:
         empty_message = "This project has no dataset."
+    else:
+        empty_message = "No dataset of this project matches the included tags."
     return Table(
         title="Selected datasets",
         columns=COLUMNS,

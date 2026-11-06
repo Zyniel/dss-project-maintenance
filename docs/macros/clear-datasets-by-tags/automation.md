@@ -100,6 +100,7 @@ A failed run, for example with a form that is not valid, raises an error in `get
 
 | Parameter | Type | Default |
 |---|---|---|
+| `included_scope` | `"TAGS"` (Datasets with the included tags) or `"ALL_DATASETS"` (All datasets) | `"TAGS"` |
 | `included_tags` | list of texts | none |
 | `included_category_tags` | list of `"<category>:<value>"` texts | none |
 | `included_match` | `"ANY"` or `"ALL"` | `"ANY"` |
@@ -118,6 +119,12 @@ A failed run, for example with a form that is not valid, raises an error in `get
 
 A missing parameter takes its default value. The two fields of a list are merged: a category tag can go in either one.
 
+With `included_scope` `"TAGS"`, at least one included tag is needed. With `"ALL_DATASETS"`, the included tags are ignored. See the table of [Select the datasets](user-guide.md#select-the-datasets).
+
+**Changed in 2.0.0-beta:** in 1.x, a call with excluded tags only selected every dataset. It is now refused, and clears nothing. Add `"included_scope": "ALL_DATASETS"` to get the 1.x result.
+
+A value of `included_scope`, `included_match` or `excluded_match` not listed above is refused.
+
 Only a real `true` or `false` counts, and only the values above for `on_error` and `on_recap_error`. Any other value takes the default:
 
 - a simulation;
@@ -134,7 +141,8 @@ The same JSON is in the hidden block of the HTML and on the `RECAP_JSON` line of
 | `outcome` | `"SUCCESS"`, `"WARNING"` (something went wrong, and the run went on) or `"FAILED"`. |
 | `problems` | What went wrong: the datasets that could not be cleared, then the summary dataset. |
 | `options` | The options used, with the same names as the parameters. |
-| `included_tags`, `included_match`, `excluded_tags`, `excluded_match` | The tags read in the form, each list merged, and "Any" or "All". |
+| `included_scope` | `"TAGS"` or `"ALL_DATASETS"`. |
+| `included_tags`, `included_match`, `excluded_tags`, `excluded_match` | The tags read in the form, each list merged, and "Any" or "All". With `"ALL_DATASETS"`, `included_tags` is empty. |
 | `included_tag_counts`, `excluded_tag_counts` | The number of datasets that have each tag. |
 | `sharing_checked`, `recipes_checked` | If each check was possible. |
 | `notices` | What the reader must know. The run continued. |

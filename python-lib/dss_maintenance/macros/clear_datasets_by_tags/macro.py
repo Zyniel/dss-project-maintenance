@@ -16,7 +16,7 @@ from dss_maintenance.recap.page import RecapPage
 
 
 class ClearDatasetsByTagsMacro(MaintenanceMacro):
-    """Clears the data of the datasets matching the included tags and not the excluded ones.
+    """Clears the data of the datasets with the included tags, or of all datasets, except the excluded ones.
 
     Each method calls the function of the same name in cleanup.py or recap.py.
     """

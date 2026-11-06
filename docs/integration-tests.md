@@ -6,13 +6,14 @@ Tests that run the macros on a real DSS, in `tests/integration`. The other tests
 
 | File | Tests | Rows of [verification](verification.md) |
 |---|---|---|
-| `test_clear_datasets_by_tags.py` | A simulation clears nothing. A real run clears only the selected datasets. An uploaded dataset is never cleared. | 9, 10, 11 |
+| `test_clear_datasets_by_tags.py` | A simulation clears nothing. A real run clears only the selected datasets. An uploaded dataset is never cleared. "All datasets" clears every managed dataset except the excluded ones. Excluded tags alone are refused. | 9, 10, 11, 28 |
 | `test_summary_dataset.py` | "Append mode" keeps the earlier runs. "Fail the run" fails the step of a scenario, "Continue" does not. | 15, 25 |
 | `test_permissions.py` | An editor sees both macros, clears without reading the sharing, and cannot skip shared datasets. A reader sees only the report, cannot clear data, and runs the report without the tag categories of the instance. | 8, 13, 22, 24 |
 
 ## What you need
 
 - **A test DSS 13**, never a production DSS: the tests create and delete projects, and can replace the plugin.
+- **A DSS license.** Without one, the API still runs the macros as an administrator, but the tests of the editor, of the reader and of scenarios fail: users have no profile, and scenarios cannot run a macro.
 - **The API key of a DSS administrator:** a global API key with the admin right, or the personal API key of an administrator.
 - **For `test_permissions.py`:** the personal API keys of two users who are not DSS administrators, an editor and a reader. Without them, these tests are skipped. Prefer existing users: a test user can take a licence seat.
 

@@ -1,14 +1,18 @@
 """Select the datasets of a project by their tags.
 
-A macro form that selects datasets by tags has two lists, included and excluded, of three fields each:
+A macro form that selects datasets by tags starts with included_scope ("Include"):
+
+- TAGS: the datasets with the included tags. At least one included tag is needed;
+- ALL_DATASETS: every dataset of the project. The included tags are ignored.
+
+Then come two lists, included and excluded, of three fields each:
 
 - included_tags, excluded_tags: tags typed by hand;
 - included_category_tags, excluded_category_tags: category tags picked from a list (see resource/tag_choices.py);
 - included_match, excluded_match: ANY or ALL.
 
-The datasets matching the included tags are selected, then the ones matching the excluded tags are
-excluded. An empty list is ignored: without included tags, every dataset is selected; without
-excluded tags, none is excluded. Both cannot be empty.
+Among the selected datasets, the ones matching the excluded tags are excluded. Without excluded tags,
+none is excluded.
 """
 
 from typing import Any, NamedTuple, Optional
@@ -19,14 +23,21 @@ from dss_maintenance.core.project import list_project_datasets
 MATCH_ANY = "ANY"
 MATCH_ALL = "ALL"
 
+# Which datasets "Include" selects, with the label and the choices of the form. A test checks the form.
+SCOPE_TAGS = "TAGS"
+SCOPE_ALL_DATASETS = "ALL_DATASETS"
+SCOPE_LABEL = "Include"
+SCOPE_CHOICES = {SCOPE_TAGS: "Datasets with the included tags", SCOPE_ALL_DATASETS: "All datasets"}
+
 
 class TagSelection(NamedTuple):
     """The tags of the form, each list merged from its two fields."""
 
-    included_tags: list[str]
+    included_tags: list[str]  # Empty with SCOPE_ALL_DATASETS.
     included_match: str
     excluded_tags: list[str]
     excluded_match: str
+    included_scope: str = SCOPE_TAGS
 
 
 class TaggedDataset(NamedTuple):
@@ -67,25 +78,47 @@ def read_match(config: dict[str, Any], key: str) -> str:
     return str(match)
 
 
-def read_tag_selection(config: dict[str, Any]) -> TagSelection:
-    """Return the included and excluded tags of the form, and how each list matches.
+def read_scope(config: dict[str, Any]) -> str:
+    """Return which datasets "Include" selects. Missing, the datasets with the included tags, as the form does.
 
-    A tag in both lists does not stop the run: the excluded tags still apply, which is the safe side.
-    See tags_in_both().
-
-    :raises ValueError: if both lists are empty
+    :raises ValueError: if the value is neither TAGS nor ALL_DATASETS
     """
-    included_tags = read_tag_list(config, "included_tags", "included_category_tags")
-    excluded_tags = read_tag_list(config, "excluded_tags", "excluded_category_tags")
+    scope = config.get("included_scope") or SCOPE_TAGS
+    if not isinstance(scope, str) or scope not in SCOPE_CHOICES:
+        raise ValueError(f"included_scope must be {SCOPE_TAGS} or {SCOPE_ALL_DATASETS}, not {scope!r}.")
+    return scope
 
-    if not included_tags and not excluded_tags:
-        raise ValueError(
-            "Give at least one included or excluded tag. Without any, the macro would act on every dataset "
-            "of the project."
-        )
+
+def read_tag_selection(config: dict[str, Any]) -> TagSelection:
+    """Return which datasets "Include" selects, the included and excluded tags, and how each list matches.
+
+    With "All datasets", the included tags are ignored: see ignored_included_tags(). A tag in both
+    lists does not stop the run: the excluded tags still apply, which is the safe side. See tags_in_both().
+
+    :raises ValueError: if "Include" asks for the included tags and there is none
+    """
+    scope = read_scope(config)
+    included_tags = read_tag_list(config, "included_tags", "included_category_tags") if scope == SCOPE_TAGS else []
+    if scope == SCOPE_TAGS and not included_tags:
+        all_datasets = SCOPE_CHOICES[SCOPE_ALL_DATASETS]
+        raise ValueError(f"Give at least one included tag, or choose '{all_datasets}' in '{SCOPE_LABEL}'.")
     return TagSelection(
-        included_tags, read_match(config, "included_match"), excluded_tags, read_match(config, "excluded_match")
+        included_tags,
+        read_match(config, "included_match"),
+        read_tag_list(config, "excluded_tags", "excluded_category_tags"),
+        read_match(config, "excluded_match"),
+        scope,
     )
+
+
+def ignored_included_tags(config: dict[str, Any], selection: TagSelection) -> list[str]:
+    """Return the included tags of the form that "All datasets" ignores.
+
+    The form hides the included tags with "All datasets", but keeps their values: the macro tells the user.
+    """
+    if selection.included_scope != SCOPE_ALL_DATASETS:
+        return []
+    return read_tag_list(config, "included_tags", "included_category_tags")
 
 
 def matches(dataset_tags: list[str], tags: list[str], match: str) -> bool:
@@ -110,16 +143,24 @@ def count_datasets_with_tag(datasets: list[dict[str, Any]], tag: str) -> int:
     return sum(1 for dataset in datasets if tag in (dataset.get("tags") or []))
 
 
+def is_included(dataset_tags: list[str], selection: TagSelection) -> bool:
+    """Tell whether "Include" selects a dataset: always with "All datasets", else if it matches the included tags."""
+    if selection.included_scope == SCOPE_ALL_DATASETS:
+        return True
+    # An empty list selects nothing. matches() would select every dataset with ALL: all([]) is true.
+    return bool(selection.included_tags) and matches(dataset_tags, selection.included_tags, selection.included_match)
+
+
 def select_datasets(datasets: list[dict[str, Any]], selection: TagSelection) -> list[TaggedDataset]:
-    """Return the datasets the included tags select, in the order given.
+    """Return the datasets "Include" selects, in the order given.
 
     An excluded dataset is returned too, with is_excluded set, so that the recap can list it.
     """
     selected = []
     for dataset in datasets:
         dataset_tags = dataset.get("tags") or []
-        if selection.included_tags and not matches(dataset_tags, selection.included_tags, selection.included_match):
-            continue  # Not selected: with included tags, a dataset must match them.
+        if not is_included(dataset_tags, selection):
+            continue
         is_excluded = bool(selection.excluded_tags) and matches(
             dataset_tags, selection.excluded_tags, selection.excluded_match
         )

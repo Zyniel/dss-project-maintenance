@@ -1,7 +1,7 @@
 {
     "meta": {
         "label": "Clear Datasets by Tags",
-        "description": "Clears the data of datasets selected by their tags.",
+        "description": "Clears the data of the datasets with the included tags, or of all datasets, except the excluded ones.",
         "icon": "icon-trash",
         "category": "Project maintenance"
     },
@@ -19,11 +19,30 @@
     "paramsPythonSetup": "tag_choices.py",
     "params": [
         {
+            "name": "included_scope",
+            "type": "SELECT",
+            "label": "Include",
+            "description": "All datasets: the excluded tags and the advanced options still apply.",
+            "selectChoices": [
+                {
+                    "value": "TAGS",
+                    "label": "Datasets with the included tags"
+                },
+                {
+                    "value": "ALL_DATASETS",
+                    "label": "All datasets"
+                }
+            ],
+            "defaultValue": "TAGS",
+            "mandatory": true
+        },
+        {
             "name": "included_tags",
             "type": "STRINGS",
             "label": "Included Tags",
             "description": "Tags to select for purge",
-            "defaultValue": []
+            "defaultValue": [],
+            "visibilityCondition": "model.included_scope != 'ALL_DATASETS'"
         },
         {
             "name": "included_category_tags",
@@ -32,7 +51,8 @@
             "description": "Category tags on this project's datasets.",
             "getChoicesFromPython": true,
             "disableAutoReload": true,
-            "defaultValue": []
+            "defaultValue": [],
+            "visibilityCondition": "model.included_scope != 'ALL_DATASETS'"
         },
         {
             "name": "included_match",
@@ -49,7 +69,8 @@
                 }
             ],
             "defaultValue": "ANY",
-            "mandatory": true
+            "mandatory": true,
+            "visibilityCondition": "model.included_scope != 'ALL_DATASETS'"
         },
         {
             "name": "excluded_tags",

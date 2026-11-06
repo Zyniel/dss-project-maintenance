@@ -2,6 +2,23 @@
 
 The changes of each version of the plugin, the most recent first.
 
+## 2.0.0-beta - 2026-11-06
+
+Pre-release.
+
+### Clear Datasets by Tags
+
+- **Breaking:** a run with excluded tags only is refused, and clears nothing. In 1.x, it selected every dataset of the project. To get the same result, choose "All datasets" in "Include" (`"included_scope": "ALL_DATASETS"` from the API or a scenario).
+- New first field, **Include**: "Datasets with the included tags" (default) or "All datasets". "All datasets" selects every dataset of the project, with or without excluded tags. The options and the datasets that are never cleared still apply. See the table of the [user guide](docs/macros/clear-datasets-by-tags/user-guide.md#select-the-datasets).
+- With "All datasets", the form hides the included tags. Their values are ignored, and a notice names them.
+- The error "Give at least one included or excluded tag" becomes "Give at least one included tag, or choose 'All datasets' in 'Include'".
+- The JSON recap has the field `included_scope`. The summary dataset keeps its columns.
+
+### For developers
+
+- A visibility condition of a form can also be `model.<select list> != '<choice>'`. A test checks that the parameter and the choice exist.
+- Integration tests of "All datasets". They pass on DSS 13.4.4 without a license; the tests of the editor, of the reader and of scenarios need one: see [integration tests](docs/integration-tests.md).
+
 ## 1.0.2 - 2026-11-05
 
 No change in the plugin.

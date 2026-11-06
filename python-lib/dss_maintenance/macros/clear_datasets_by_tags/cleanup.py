@@ -24,10 +24,14 @@ from dss_maintenance.core.project import (
     read_shared_datasets,
 )
 from dss_maintenance.core.tags import (
+    SCOPE_ALL_DATASETS,
+    SCOPE_CHOICES,
+    SCOPE_LABEL,
     TaggedDataset,
     TagSelection,
     count_datasets_with_tag,
     describe_match,
+    ignored_included_tags,
     read_tag_selection,
     select_datasets,
     tags_in_both,
@@ -126,7 +130,7 @@ def decide(
         "partition_dimensions": dimensions,
         "status": STATUS_TO_CLEAR,
         "skip_code": "",
-        # Without included tags, every dataset is selected: there is nothing to say.
+        # With "All datasets", there is no included tag and nothing to say.
         "detail": describe_match("included", selection.included_match) if selection.included_tags else "",
         "warnings": [],
         "duration": None,
@@ -244,13 +248,11 @@ def run_cleanup(
     simulate = options["simulate"]
 
     logger.info("%s", "Simulation, nothing is cleared" if simulate else "Real run, data is cleared")
-    logger.info(
-        "Included tags (%s): %s | excluded tags (%s): %s",
-        selection.included_match,
-        selection.included_tags or "none",
-        selection.excluded_match,
-        selection.excluded_tags or "none",
-    )
+    if selection.included_scope == SCOPE_ALL_DATASETS:
+        included = "All datasets"
+    else:
+        included = f"Included tags ({selection.included_match}): {selection.included_tags}"
+    logger.info("%s | excluded tags (%s): %s", included, selection.excluded_match, selection.excluded_tags or "none")
     logger.info("Options: %s", options)
 
     # Step 1: decide what to do with each dataset, before clearing anything.
@@ -286,6 +288,11 @@ def run_cleanup(
                 f"Datasets no recipe builds cannot be skipped. {problem} "
                 f"Run the macro again, or check '{OPTION_LABELS['purge_without_recipe']}'."
             )
+
+    ignored = ignored_included_tags(config, selection)
+    if ignored:
+        all_datasets = SCOPE_CHOICES[SCOPE_ALL_DATASETS]
+        notices.append(f"Included tags ignored, since '{SCOPE_LABEL}' is '{all_datasets}': {', '.join(ignored)}.")
 
     in_both = tags_in_both(selection)
     if in_both:
@@ -339,6 +346,7 @@ def run_cleanup(
     return {
         "simulate": simulate,
         "options": options,
+        "included_scope": selection.included_scope,
         "included_tags": selection.included_tags,
         "included_match": selection.included_match,
         "excluded_tags": selection.excluded_tags,

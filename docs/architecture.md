@@ -13,7 +13,7 @@ python-lib/dss_maintenance/
     runner.py              run_macro(): runs a macro, from start to end
     options.py             Reads the form: the "Summary" section of every form, the "Run" section of macros that change data
     project.py             Reads a project: datasets, sharing, Flow
-    tags.py                Selects datasets by included and excluded tags
+    tags.py                Selects datasets: all of them or by included tags, then excluded tags
   recap/                 Shared by all macros
     page.py                RecapPage: the description of a recap (banners, figures, table...)
     html.py                Builds the HTML recap and its interactive table
