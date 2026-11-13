@@ -121,7 +121,7 @@ A missing parameter takes its default value. The two fields of a list are merged
 
 With `included_scope` `"TAGS"`, at least one included tag is needed. With `"ALL_DATASETS"`, the included tags are ignored. See the table of [Select the datasets](user-guide.md#select-the-datasets).
 
-**Changed in 2.0.0-beta:** in 1.x, a call with excluded tags only selected every dataset. It is now refused, and clears nothing. Add `"included_scope": "ALL_DATASETS"` to get the 1.x result.
+**Changed since 1.x:** in 1.x, a call with excluded tags only selected every dataset. It is now refused, and clears nothing. Add `"included_scope": "ALL_DATASETS"` to get the 1.x result.
 
 A value of `included_scope`, `included_match` or `excluded_match` not listed above is refused.
 

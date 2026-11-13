@@ -2,6 +2,20 @@
 
 The changes of each version of the plugin, the most recent first.
 
+## 2.1.0 - 2026-11-13
+
+The first stable version of 2.x. 2.0.0-beta and 2.0.4-beta were pre-releases: 2.1.0 has all their changes, and no other change in the plugin.
+
+### Update from 1.x
+
+The changes since 1.0.2 are in 2.0.0-beta and 2.0.4-beta, below. Three of them can change the result of a scenario or a script:
+
+- Clear Datasets by Tags refuses a run with excluded tags only, and clears nothing. In 1.x, it selected every dataset of the project. To get the same result, choose "All datasets" in "Include" (`"included_scope": "ALL_DATASETS"`).
+- "If an error occurs" is "Continue, run ends in error" by default. When a dataset cannot be cleared, the run still tries every dataset, then ends in error: a scenario step turns red. To keep the 1.x behavior, choose "Continue, run ends as success" (`"on_error": "CONTINUE"`).
+- The messages at the top of the recap have new texts, and so do the `notices`, `blockers` and `problems` fields of the JSON recap. Check any script that reads these texts.
+
+After the update, the form still shows each user the values of their last run. "Reset to default" shows the new defaults.
+
 ## 2.0.4-beta - 2026-11-06
 
 Pre-release. The changes since 2.0.0-beta.
