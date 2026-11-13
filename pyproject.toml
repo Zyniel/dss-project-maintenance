@@ -1,7 +1,7 @@
 [project]
 name = "dss-plugin-project-maintenance"
 # Keep in line with plugin.json: a test checks that both versions match.
-version = "2.0.4-beta"
+version = "2.1.0"
 # DSS 13 runs the plugin in its built-in Python 3.9 environment.
 requires-python = ">=3.9"
 dependencies = []

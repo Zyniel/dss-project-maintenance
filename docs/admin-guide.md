@@ -15,6 +15,8 @@ What a DSS administrator must know to install the plugin and trust it.
 
 After an update, DSS still shows each user the values of their last run in the form. "Reset to default" shows the new defaults.
 
+Before you update from 1.x, read [Update from 1.x](../CHANGELOG.md#update-from-1x) in the CHANGELOG: three changes can change the result of a scenario or a script.
+
 ## Rights
 
 The macros run with the rights of the user who runs them (`"impersonate": true`). They give no extra rights.
